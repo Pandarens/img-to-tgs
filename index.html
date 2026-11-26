@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GIF / Video → TGS / WEBM стикер</title>
+<style>
+  :root { color-scheme: light dark; --bg:#0f1115; --card:#181b22; --fg:#e8e8ea; --mut:#9aa0aa; --acc:#2aabee; --bad:#ff6b6b; --ok:#4cd17a; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f4f5f7; --card:#fff; --fg:#15171c; --mut:#636a75; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { color:var(--mut); margin:0 0 20px; }
+  .card { background:var(--card); border-radius:14px; padding:18px; margin-bottom:16px; }
+  #drop { border:2px dashed var(--mut); border-radius:12px; padding:36px; text-align:center; cursor:pointer; color:var(--mut); }
+  #drop.over { border-color:var(--acc); color:var(--acc); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+  label { display:block; font-size:13px; color:var(--mut); }
+  label b { color:var(--fg); font-weight:600; }
+  input[type=range] { width:100%; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:10px; padding:10px 18px; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .previews { display:flex; gap:16px; flex-wrap:wrap; }
+  .pv { flex:1 1 260px; }
+  .pv > div, .pv > img, .pv > video { width:100%; aspect-ratio:1; border-radius:10px; object-fit:contain;
+    background: repeating-conic-gradient(#8882 0 25%, transparent 0 50%) 0 0/20px 20px; }
+  #status { color:var(--mut); min-height:1.5em; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>GIF / Video → стикер Telegram</h1>
+  <p class="sub">Конвертер в анимированные стикеры Telegram. Всё работает в браузере, файлы никуда не загружаются.</p>
+
+  <div class="card">
+    <div id="drop">Перетащи GIF / MP4 / WEBM сюда или нажми, чтобы выбрать<input id="file" type="file" accept="image/gif,video/*,image/webp,image/png" hidden></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:14px">
+      <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="fmt" value="tgs" checked> <b>TGS</b> — векторный, ≤ 64 КБ, стилизованный</label>
+      <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="fmt" value="webm"> <b>WEBM</b> — видеостикер, ≤ 256 КБ, как исходник</label>
+    </div>
+    <div class="grid" id="tgs-opts">
+      <label class="t">Разрешение трассировки: <b id="v-res"></b>px<input id="res" type="range" min="48" max="320" step="8" value="192"></label>
+      <label class="t">Цветов: <b id="v-colors"></b><input id="colors" type="range" min="2" max="32" value="12"></label>
+      <label class="t">Кадров в секунду: <b id="v-fps"></b><input id="fps" type="range" min="5" max="30" value="15"></label>
+      <label>Макс. длительность: <b id="v-dur"></b>с<input id="dur" type="range" min="0.5" max="3" step="0.1" value="3"></label>
+      <label class="t">Убрать мелкие детали: <b id="v-omit"></b><input id="omit" type="range" min="0" max="40" value="4"></label>
+      <label class="t">Сглаживание: <b id="v-blur"></b><input id="blur" type="range" min="0" max="5" value="0"></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <label class="t" style="display:flex;gap:6px;align-items:center"><input id="auto" type="checkbox" checked> <b>Автоматически ужать до 64 КБ</b></label>
+      <label class="t" style="display:flex;gap:6px;align-items:center"><input id="transp" type="checkbox"> <b>Убрать фон (цвет угла)</b></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="go" disabled>Конвертировать</button>
+      <button id="dl" class="sec" disabled>Скачать</button>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <div class="card previews">
+    <div class="pv"><label>Исходник</label><div id="src"></div></div>
+    <div class="pv"><label>Результат</label><div id="out"></div></div>
+  </div>
+  <p class="sub">Требования Telegram: 512×512, до 3 с, 60 fps, ≤ 64 КБ, только векторы. Поэтому кадры векторизуются — получится «постеризованный» стиль. Для точной картинки выбирай WEBM: VP9 с прозрачностью, 512 px, до 3 с, ≤ 256 КБ.</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie_light.min.js"></script>
+<script type="module">
+const $ = id => document.getElementById(id);
+const opts = ['res','colors','fps','dur','omit','blur'];
+opts.forEach(k => { const f = () => $('v-'+k).textContent = $(k).value; $(k).oninput = f; f(); });
+
+let file = null, tgsBlob = null, anim = null, outExt = 'tgs';
+const fmt = () => document.querySelector('input[name=fmt]:checked').value;
+document.querySelectorAll('input[name=fmt]').forEach(r => r.onchange = () => {
+  document.querySelectorAll('.t').forEach(el => el.style.display = fmt() === 'tgs' ? '' : 'none');
+  if (file) $('go').click();
+});
+
+// ---------- WEBM: WebCodecs VP9 (colour + separate alpha stream) + tiny WebM muxer ----------
+// Browsers can't encode VP9 alpha directly, so we encode alpha as a second VP9 stream
+// (alpha in the Y plane) and store it in BlockAdditions with AlphaMode=1 — the standard WebM way.
+const enc = new TextEncoder();
+function vint(n) { // EBML size
+  for (let len = 1; len <= 8; len++) if (n < 2 ** (7 * len) - 1) {
+    const b = new Uint8Array(len); let v = n;
+    for (let i = len - 1; i >= 0; i--) { b[i] = v & 255; v = Math.floor(v / 256); }
+    b[0] |= 1 << (8 - len); return b;
+  }
+}
+function idBytes(id) { const a = []; while (id > 0) { a.unshift(id & 255); id = Math.floor(id / 256); } return new Uint8Array(a); }
+function cat(parts) { const n = parts.reduce((s, p) => s + p.length, 0), o = new Uint8Array(n); let k = 0; for (const p of parts) { o.set(p, k); k += p.length; } return o; }
+function el(id, body) {
+  if (typeof body === 'string') body = enc.encode(body);
+  else if (typeof body === 'number') { const a = []; let v = body; do { a.unshift(v & 255); v = Math.floor(v / 256); } while (v > 0); body = new Uint8Array(a); }
+  else if (Array.isArray(body)) body = cat(body);
+  return cat([idBytes(id), vint(body.length), body]);
+}
+const f64 = x => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat64(0, x); return b; };
+
+function muxWebm(w, h, durMs, frames) { // frames: [{tsMs, key, data, alpha}]
+  const header = el(0x1A45DFA3, [el(0x4286, 1), el(0x42F7, 1), el(0x42F2, 4), el(0x42F3, 8), el(0x4282, 'webm'), el(0x4287, 4), el(0x4285, 2)]);
+  const info = el(0x1549A966, [el(0x2AD7B1, 1000000), el(0x4489, f64(durMs)), el(0x4D80, 'img-to-tgs'), el(0x5741, 'img-to-tgs')]);
+  const tracks = el(0x1654AE6B, [el(0xAE, [el(0xD7, 1), el(0x73C5, 1), el(0x83, 1), el(0x86, 'V_VP9'),
+    el(0xE0, [el(0xB0, w), el(0xBA, h), el(0x53C0, 1)])])]);
+  const blocks = [el(0xE7, 0)];
+  let prevTs = 0;
+  for (const fr of frames) {
+    const pre = new Uint8Array(4); pre[0] = 0x81; new DataView(pre.buffer).setInt16(1, fr.tsMs); pre[3] = 0;
+    const parts = [el(0xA1, [pre, fr.data])];
+    if (!fr.key) { const rb = new Uint8Array(2); new DataView(rb.buffer).setInt16(0, prevTs - fr.tsMs); parts.push(el(0xFB, rb)); }
+    parts.push(el(0x75A1, [el(0xA6, [el(0xEE, 1), el(0xA5, fr.alpha)])]));
+    blocks.push(el(0xA0, parts));
+    prevTs = fr.tsMs;
+  }
+  const segment = el(0x18538067, [info, tracks, el(0x1F43B675, blocks)]);
+  return new Blob([header, segment], { type: 'video/webm' });
+}
+
+async function encodeStream(frameList, w, h, kbps, makeFrame) {
+  const chunks = [];
+  let err = null;
+  const e = new VideoEncoder({ output: c => { const d = new Uint8Array(c.byteLength); c.copyTo(d); chunks.push({ key: c.type === 'key', data: d }); }, error: x => err = x });
+  e.configure({ codec: 'vp09.00.10.08', width: w, height: h, bitrate: kbps * 1000, framerate: 30, latencyMode: 'quality' });
+  frameList.forEach((fr, i) => { const vf = makeFrame(fr); e.encode(vf, { keyFrame: i === 0 }); vf.close(); });
+  await e.flush(); e.close();
+  if (err) throw err;
+  return chunks;
+}
+
+async function toWebm(o) {
+  if (!('VideoEncoder' in window)) throw new Error('Браузер не поддерживает WebCodecs — открой в Chrome / Edge / Firefox');
+  status('Извлекаю кадры…');
+  const fps = Math.min(30, Math.max(o.fps, 30)); // sample at 30 fps for smoothness
+  const { frames, w: fw, h: fh } = await extractFrames(file, fps, o.dur, 512);
+  const w = fw & ~1, h = fh & ~1;
+  let t = 0;
+  const list = frames.map(fr => { const x = { c: fr.c, tsMs: Math.round(t * 1000 / fps), us: Math.round(t * 1e6 / fps) }; t += fr.n; return x; });
+  const durMs = Math.round(t * 1000 / fps);
+  // alpha planes (Y = alpha, U = V = 128), computed once
+  const alphaBufs = list.map(fr => {
+    const d = fr.c.getContext('2d').getImageData(0, 0, w, h).data;
+    const buf = new Uint8Array(w * h * 3 / 2).fill(128);
+    for (let i = 0; i < w * h; i++) buf[i] = d[i * 4 + 3];
+    return buf;
+  });
+  const LIMIT = 256 * 1024;
+  let kbps = Math.floor(LIMIT * 8 / (durMs / 1000) / 1000 * 0.8), blob;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    status(`Кодирую WEBM (${kbps} кбит/с)…`);
+    const col = await encodeStream(list, w, h, kbps, fr => new VideoFrame(fr.c, { timestamp: fr.us, visibleRect: { x: 0, y: 0, width: w, height: h }, alpha: 'discard' }));
+    const alp = await encodeStream(list, w, h, Math.max(50, kbps >> 2), (fr) => {
+      const i = list.indexOf(fr);
+      return new VideoFrame(alphaBufs[i], { format: 'I420', codedWidth: w, codedHeight: h, timestamp: fr.us });
+    });
+    blob = muxWebm(w, h, durMs, list.map((fr, i) => ({ tsMs: fr.tsMs, key: col[i].key, data: col[i].data, alpha: alp[i].data })));
+    if (blob.size <= LIMIT) break;
+    kbps = Math.floor(kbps * LIMIT / blob.size * 0.85);
+  }
+  return blob;
+}
+const status = (t, cls='') => { $('status').textContent = t; $('status').className = cls; };
+
+// ---------- input ----------
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => setFile(e.target.files[0]);
+$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); setFile(e.dataTransfer.files[0]); };
+
+function setFile(f) {
+  if (!f) return;
+  file = f; tgsBlob = null; $('dl').disabled = true; $('go').disabled = false;
+  const url = URL.createObjectURL(f);
+  $('src').innerHTML = f.type.startsWith('video')
+    ? `<video src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>`
+    : `<img src="${url}" style="width:100%;height:100%;object-fit:contain">`;
+  if (anim) { anim.destroy(); anim = null; }
+  $('out').innerHTML = '';
+  status(f.name);
+  $('go').click();
+}
+
+// ---------- frame extraction -> array of {canvas, t} sampled at fps ----------
+async function extractFrames(f, fps, maxDur, size) {
+  const out = [];
+  const mk = () => { const c = document.createElement('canvas'); return c; };
+  const fit = (w, h) => { const s = size / Math.max(w, h); return [Math.max(1, Math.round(w*s)), Math.max(1, Math.round(h*s))]; };
+
+  if (f.type.startsWith('video')) {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.src = URL.createObjectURL(f);
+    await new Promise((ok, err) => { v.onloadeddata = ok; v.onerror = () => err(new Error('Не удалось открыть видео')); });
+    const dur = Math.min(v.duration || maxDur, maxDur);
+    const [w, h] = fit(v.videoWidth, v.videoHeight);
+    const n = Math.max(1, Math.round(dur * fps));
+    for (let i = 0; i < n; i++) {
+      v.currentTime = Math.min(i / fps, v.duration - 0.001);
+      await new Promise(ok => v.onseeked = ok);
+      const c = mk(); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(v, 0, 0, w, h);
+      out.push({ c, n: 1 });
+    }
+    return { frames: out, w, h, dur: n / fps };
+  }
+
+  if (!('ImageDecoder' in window)) throw new Error('Браузер не поддерживает ImageDecoder — открой в Chrome/Edge/свежем Firefox или Safari');
+  const dec = new ImageDecoder({ data: await f.arrayBuffer(), type: f.type || 'image/gif' });
+  await dec.tracks.ready;
+  const count = dec.tracks.selectedTrack.frameCount;
+  const src = []; let t = 0;
+  for (let i = 0; i < count && t < maxDur; i++) {
+    const { image } = await dec.decode({ frameIndex: i });
+    const d = (image.duration || 100000) / 1e6;
+    src.push({ img: image, t0: t }); t += d;
+  }
+  const total = Math.min(t, maxDur);
+  const [w, h] = fit(src[0].img.displayWidth, src[0].img.displayHeight);
+  const n = Math.max(1, Math.round(total * fps));
+  let lastK = -1;
+  for (let i = 0; i < n; i++) {
+    const tt = i / fps;
+    let k = 0; while (k + 1 < src.length && src[k + 1].t0 <= tt) k++;
+    if (k === lastK) { out[out.length - 1].n++; continue; } // same GIF frame -> just hold it longer
+    lastK = k;
+    const c = mk(); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(src[k].img, 0, 0, w, h);
+    out.push({ c, n: 1 });
+  }
+  src.forEach(s => s.img.close());
+  return { frames: out, w, h, dur: n / fps };
+}
+
+// ---------- vectorize a canvas -> lottie shape groups ----------
+const r1 = x => Math.round(x * 10) / 10;
+function pathToShape(p) {
+  const segs = p.segments, v = [], i = [], o = [];
+  const n = segs.length;
+  for (let k = 0; k < n; k++) { v.push([r1(segs[k].x1), r1(segs[k].y1)]); i.push([0,0]); o.push([0,0]); }
+  for (let k = 0; k < n; k++) {
+    const s = segs[k];
+    if (s.type === 'Q') {
+      const nx = (k + 1) % n;
+      o[k] = [r1((s.x2 - s.x1) * 2/3), r1((s.y2 - s.y1) * 2/3)];
+      i[nx] = [r1((s.x2 - s.x3) * 2/3), r1((s.y2 - s.y3) * 2/3)];
+    }
+  }
+  return { ty: 'sh', ks: { a: 0, k: { c: true, v, i, o } } };
+}
+
+// Shared palette for all frames (k-means over opaque pixels): stable colours, no flicker,
+// and transparent pixels don't eat palette slots.
+function buildPalette(frames, k, bg) {
+  const px = [];
+  const per = Math.ceil(30000 / frames.length);
+  for (const { c } of frames) {
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const total = d.length / 4, step = Math.max(1, Math.floor(total / per));
+    for (let i = 0; i < total; i += step) {
+      const j = i * 4;
+      if (d[j+3] < 128) continue;
+      if (bg && Math.abs(d[j]-bg[0]) + Math.abs(d[j+1]-bg[1]) + Math.abs(d[j+2]-bg[2]) < 40) continue;
+      px.push([d[j], d[j+1], d[j+2]]);
+    }
+  }
+  if (!px.length) return [];
+  // k-means++ init (deterministic: pick farthest point)
+  const cen = [px[0].slice()];
+  const dist = (a, b) => (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+  const dmin = px.map(p => dist(p, cen[0]));
+  while (cen.length < k) {
+    let bi = 0; for (let i = 1; i < px.length; i++) if (dmin[i] > dmin[bi]) bi = i;
+    if (dmin[bi] === 0) break;
+    cen.push(px[bi].slice());
+    for (let i = 0; i < px.length; i++) dmin[i] = Math.min(dmin[i], dist(px[i], px[bi]));
+  }
+  for (let it = 0; it < 10; it++) {
+    const sum = cen.map(() => [0, 0, 0, 0]);
+    for (const p of px) {
+      let bi = 0, bd = Infinity;
+      for (let c = 0; c < cen.length; c++) { const dd = dist(p, cen[c]); if (dd < bd) { bd = dd; bi = c; } }
+      const s = sum[bi]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++;
+    }
+    sum.forEach((s, c) => { if (s[3]) cen[c] = [s[0]/s[3], s[1]/s[3], s[2]/s[3]]; });
+  }
+  return cen.map(c => ({ r: Math.round(c[0]), g: Math.round(c[1]), b: Math.round(c[2]), a: 255 }));
+}
+
+function traceFrame(canvas, o, bgColor, pal) {
+  const ctx = canvas.getContext('2d');
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  // hard alpha: semi-transparent edges -> opaque or fully transparent
+  const d = img.data;
+  for (let j = 0; j < d.length; j += 4) { if (d[j+3] < 128) d[j] = d[j+1] = d[j+2] = d[j+3] = 0; else d[j+3] = 255; }
+  const td = ImageTracer.imagedataToTracedata(img, {
+    pal: [...pal, { r: 0, g: 0, b: 0, a: 0 }],
+    pathomit: o.omit, blurradius: o.blur, blurdelta: 20,
+    ltres: 1, qtres: 1, rightangleenhance: false, colorquantcycles: 1, mincolorratio: 0,
+  });
+  // "Stacked" mode: draw every outer contour filled (ignoring holes), biggest first,
+  // smaller ones on top. Shapes overlap instead of touching, so there are no seams/gaps.
+  const items = [];
+  td.layers.forEach((layer, ci) => {
+    const c = td.palette[ci];
+    if (c.a < 128) return;
+    if (bgColor && Math.abs(c.r-bgColor[0]) + Math.abs(c.g-bgColor[1]) + Math.abs(c.b-bgColor[2]) < 40) return;
+    layer.forEach(p => {
+      if (p.isholepath || p.segments.length < 3) return;
+      const b = p.boundingbox;
+      items.push({ ci, area: (b[2]-b[0]) * (b[3]-b[1]), p });
+    });
+  });
+  items.sort((a, b) => b.area - a.area);
+  // merge consecutive runs of the same colour into one group to save bytes
+  const groups = [];
+  let cur = null;
+  for (const it of items) {
+    if (!cur || cur.ci !== it.ci) { cur = { ci: it.ci, shapes: [] }; groups.push(cur); }
+    cur.shapes.push(pathToShape(it.p));
+  }
+  return groups.map(g => {
+    const c = td.palette[g.ci];
+    return { ty: 'gr', it: [
+      ...g.shapes,
+      { ty: 'fl', c: { a: 0, k: [+(c.r/255).toFixed(3), +(c.g/255).toFixed(3), +(c.b/255).toFixed(3), 1] }, o: { a: 0, k: 100 }, r: 1 },
+      { ty: 'tr', p: {a:0,k:[0,0]}, a: {a:0,k:[0,0]}, s: {a:0,k:[100,100]}, r: {a:0,k:0}, o: {a:0,k:100} },
+    ] };
+  }).reverse(); // lottie: first item in the list is drawn on top
+}
+
+// ---------- build lottie ----------
+async function build(o) {
+  status('Извлекаю кадры…');
+  const { frames, w, h } = await extractFrames(file, o.fps, o.dur, o.res);
+  let bg = null;
+  if (o.transp) { const d = frames[0].c.getContext('2d').getImageData(0, 0, 1, 1).data; bg = [d[0], d[1], d[2]]; }
+  const FR = 60, step = FR / o.fps;
+  const scale = 512 / Math.max(w, h) * 100;
+  const off = [(512 - w * scale / 100) / 2, (512 - h * scale / 100) / 2];
+  const pal = buildPalette(frames, o.colors, bg);
+  const layers = [];
+  let slot = 0;
+  for (let k = 0; k < frames.length; k++) {
+    status(`Векторизую кадр ${k+1}/${frames.length}…`);
+    await new Promise(r => setTimeout(r));
+    const ip = Math.round(slot * step), op = Math.round((slot + frames[k].n) * step);
+    slot += frames[k].n;
+    layers.push({
+      ddd: 0, ind: k + 1, ty: 4, nm: 'f' + k, sr: 1, ip, op, st: 0, bm: 0,
+      ks: { o:{a:0,k:100}, r:{a:0,k:0}, p:{a:0,k:[r1(off[0]), r1(off[1]), 0]}, a:{a:0,k:[0,0,0]}, s:{a:0,k:[r1(scale), r1(scale), 100]} },
+      shapes: traceFrame(frames[k].c, o, bg, pal),
+    });
+  }
+  const opEnd = Math.round(slot * step);
+  return { tgs: 1, v: '5.5.2', fr: FR, ip: 0, op: opEnd, w: 512, h: 512, nm: 'sticker', ddd: 0, assets: [], layers };
+}
+
+async function gzip(str) {
+  const s = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
+  return await new Response(s).blob();
+}
+
+const read = () => ({ res:+$('res').value, colors:+$('colors').value, fps:+$('fps').value, dur:+$('dur').value,
+  omit:+$('omit').value, blur:+$('blur').value, transp:$('transp').checked });
+
+$('go').onclick = async () => {
+  $('go').disabled = true; $('dl').disabled = true;
+  if (fmt() === 'webm') {
+    try {
+      const blob = await toWebm(read());
+      tgsBlob = blob; outExt = 'webm';
+      const kb = blob.size / 1024;
+      status(`Готово: ${kb.toFixed(1)} КБ ${kb <= 256 ? '✓' : '— больше 256 КБ'}`, kb <= 256 ? 'ok' : 'bad');
+      if (anim) { anim.destroy(); anim = null; }
+      $('out').innerHTML = `<video src="${URL.createObjectURL(blob)}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>`;
+      $('dl').disabled = false;
+    } catch (e) { console.error(e); status('Ошибка: ' + e.message, 'bad'); }
+    $('go').disabled = false;
+    return;
+  }
+  outExt = 'tgs';
+  try {
+    let o = read(), json, blob;
+    for (let attempt = 0; ; attempt++) {
+      json = await build(o);
+      blob = await gzip(JSON.stringify(json));
+      const kb = blob.size / 1024;
+      if (!$('auto').checked || kb <= 64 || attempt >= 16) break;
+      // shrink: fps first, then colors, then resolution, then detail
+      // shrink gently, least visible losses first
+      const big = kb > 100;
+      if (o.omit < 16) o.omit += big ? 8 : 4;
+      else if (o.res > 112) o.res -= big ? 32 : 16;
+      else if (o.fps > 12) o.fps -= 3;
+      else if (o.colors > 8) o.colors -= 2;
+      else if (o.res > 72) o.res -= 16;
+      else if (o.omit < 32) o.omit += 8;
+      else if (o.colors > 4) o.colors -= 1;
+      else if (o.fps > 6) o.fps -= 2;
+      else break;
+      status(`${kb.toFixed(1)} КБ — ужимаю (fps ${o.fps}, цветов ${o.colors}, ${o.res}px)…`);
+      await new Promise(r => setTimeout(r));
+    }
+    Object.entries(o).forEach(([k, v]) => { if ($(k) && k !== 'transp') { $(k).value = v; $('v-'+k).textContent = v; } });
+    tgsBlob = blob;
+    const kb = blob.size / 1024;
+    status(`Готово: ${kb.toFixed(1)} КБ ${kb <= 64 ? '✓' : '— больше 64 КБ, Telegram не примет'}`, kb <= 64 ? 'ok' : 'bad');
+    $('dl').disabled = false;
+    if (anim) anim.destroy();
+    $('out').innerHTML = '';
+    anim = lottie.loadAnimation({ container: $('out'), renderer: 'svg', loop: true, autoplay: true, animationData: json });
+  } catch (e) {
+    console.error(e); status('Ошибка: ' + e.message, 'bad');
+  }
+  $('go').disabled = false;
+};
+
+$('dl').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(tgsBlob);
+  a.download = (file.name.replace(/\.[^.]+$/, '') || 'sticker') + '.' + outExt;
+  a.click();
+};
+</script>
+</body>
+</html>
