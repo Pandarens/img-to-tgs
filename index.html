@@ -57,7 +57,9 @@
   kbd { font:600 11.5px ui-monospace,monospace; padding:2px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); }
 
   /* format tiles */
-  .fmt { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .fmt { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (max-width:560px) { .fmt { grid-template-columns:1fr; } }
+  .fmt .badge.beta { background:var(--grad); color:#fff; border-color:transparent; }
   .fmt label { position:relative; display:block; cursor:pointer; padding:14px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg2); transition:.15s; }
   .fmt label:hover { border-color:rgba(255,61,154,.5); }
   .fmt input { position:absolute; opacity:0; }
@@ -158,6 +160,8 @@
   .seg.wide { display:flex; } .seg.wide button { flex:1; }
   .qi .tag { font-size:11px; padding:1px 6px; border-radius:6px; background:var(--grad); color:#fff; margin-left:6px; vertical-align:1px; }
 
+  .fmt > label { padding-top:40px; } .fmt > label .badge { top:12px; left:14px; right:auto; }
+
   /* toast */
   #toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,30px); opacity:0; background:var(--bg2); border:1px solid var(--line); color:var(--fg);
     padding:10px 16px; border-radius:12px; box-shadow:var(--shadow); font-size:14px; transition:.25s; pointer-events:none; z-index:10; }
@@ -194,6 +198,7 @@
         <h2><span class="step">2</span><span data-i="s2"></span></h2>
         <div class="fmt">
           <label><input type="radio" name="fmt" value="tgs" checked><span class="badge">≤ 64 KB</span><b>TGS</b><small data-i="tgs"></small></label>
+          <label><input type="radio" name="fmt" value="rtgs"><span class="badge beta">≤ 64 KB · β</span><b><span data-i="rtgsT"></span></b><small data-i="rtgs"></small></label>
           <label><input type="radio" name="fmt" value="webm"><span class="badge">≤ 256 KB</span><b>WEBM</b><small data-i="webm"></small></label>
         </div>
 
@@ -293,7 +298,7 @@ const I18N = {
     sub: 'GIF и видео → стикеры Telegram. Прямо в браузере, файлы никуда не загружаются.',
     s1: 'Загрузи файлы', s2: 'Формат и качество', s3: 'Результат',
     drop: 'Перетащи GIF / MP4 / WEBM или нажми, чтобы выбрать', drop2: 'можно сразу несколько',
-    tgs: 'Векторный анимированный стикер, стилизованная картинка', webm: 'Видеостикер — выглядит точно как исходник, с прозрачностью',
+    tgs: 'Векторный стикер, стилизованная картинка', webm: 'Видеостикер, точно как исходник',
     pMax: '💎 Максимум деталей', pBal: '⚖️ Баланс', pMin: '🪶 Лёгкий', adv: 'Тонкая настройка',
     res: 'Разрешение трассировки', colors: 'Цветов', fps: 'Кадров в секунду', dur: 'Длительность', sec: 'с', omit: 'Убрать мелкие детали', blur: 'Сглаживание',
     auto: 'Ужать до 64 КБ автоматически', transp: 'Убрать фон (цвет угла)', go: 'Конвертировать заново', dl: 'Скачать', src: 'Исходник', out: 'Стикер',
@@ -310,13 +315,14 @@ const I18N = {
     files: 'Файлы', zip: 'Скачать все (ZIP)', kb: 'КБ', working: 'конвертирую…', waiting: 'в очереди', batchDone: (n, t) => `Готово: ${n} из ${t}`,
     shrink: (kb, o) => `${kb} КБ — ужимаю (fps ${o.fps}, цветов ${o.colors}, ${o.res}px)…`,
     edit: 'Редактор', edTitle: 'Редактор', mOrig: 'Оригинал', mCrop: 'Обрезать в квадрат', mFit: 'Вписать в квадрат', zoom: 'Масштаб', speed: 'Скорость', reset: 'Сбросить', cancel: 'Отмена', apply: 'Применить', edited: 'изменён',
+    rtgsT: 'TGS растр', rtgs: 'Кадры картинками, без векторизации. Эксперимент: @Stickers может не принять', rframe: (a, b, s, c) => `Кадр ${a}/${b} · ${s}px · ${c} цветов…`,
     fits: lim => `✓ влезает в ${lim} КБ`, over: lim => `⚠ больше ${lim} КБ`, added: n => `Добавлено файлов: ${n}`, zipped: 'Архив сохранён 📦', unsupported: 'Этот тип файла не поддерживается',
   },
   en: {
     sub: 'GIF & video → Telegram stickers. Right in your browser, nothing is uploaded.',
     s1: 'Add files', s2: 'Format & quality', s3: 'Result',
     drop: 'Drop GIF / MP4 / WEBM or click to choose', drop2: 'several at once is fine',
-    tgs: 'Vector animated sticker, stylized look', webm: 'Video sticker — looks exactly like the source, with transparency',
+    tgs: 'Vector sticker, stylized look', webm: 'Video sticker, exactly like the source',
     pMax: '💎 Max detail', pBal: '⚖️ Balanced', pMin: '🪶 Light', adv: 'Fine tuning',
     res: 'Tracing resolution', colors: 'Colors', fps: 'Frames per second', dur: 'Duration', sec: 's', omit: 'Drop small details', blur: 'Smoothing',
     auto: 'Auto-shrink to 64 KB', transp: 'Remove background (corner color)', go: 'Convert again', dl: 'Download', src: 'Source', out: 'Sticker',
@@ -333,6 +339,7 @@ const I18N = {
     files: 'Files', zip: 'Download all (ZIP)', kb: 'KB', working: 'converting…', waiting: 'queued', batchDone: (n, t) => `Done: ${n} of ${t}`,
     shrink: (kb, o) => `${kb} KB — shrinking (fps ${o.fps}, colors ${o.colors}, ${o.res}px)…`,
     edit: 'Editor', edTitle: 'Editor', mOrig: 'Original', mCrop: 'Crop to square', mFit: 'Fit into square', zoom: 'Zoom', speed: 'Speed', reset: 'Reset', cancel: 'Cancel', apply: 'Apply', edited: 'edited',
+    rtgsT: 'TGS raster', rtgs: 'Frames as images, no vectorizing. Experimental: @Stickers may reject it', rframe: (a, b, s, c) => `Frame ${a}/${b} · ${s}px · ${c} colors…`,
     fits: lim => `✓ fits ${lim} KB`, over: lim => `⚠ over ${lim} KB`, added: n => `Files added: ${n}`, zipped: 'Archive saved 📦', unsupported: 'This file type is not supported',
   },
 };
@@ -863,6 +870,88 @@ async function build(o) {
   return { tgs: 1, v: '5.5.2', fr: FR, ip: 0, op: opEnd, w: 512, h: 512, nm: 'sticker', ddd: 0, assets: [], layers };
 }
 
+// ---------- raster TGS (experimental): every frame is an embedded PNG image, no vectorization ----------
+// Telegram's player (rlottie) decodes PNG/JPEG only, so frames are 8-bit palette PNGs (shared palette,
+// index 0 = transparent) — the smallest lossless format it understands.
+async function zlib(bytes) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+}
+function pngChunk(type, data) {
+  const t = new TextEncoder().encode(type), out = new Uint8Array(12 + data.length), dv = new DataView(out.buffer);
+  dv.setUint32(0, data.length); out.set(t, 4); out.set(data, 8);
+  dv.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length)));
+  return out;
+}
+async function encodePng8(canvas, pal) { // pal: [{r,g,b}] opaque colours; index 0 is transparent
+  const w = canvas.width, h = canvas.height;
+  const d = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+  const raw = new Uint8Array((w + 1) * h), cache = new Map();
+  for (let y = 0; y < h; y++) {
+    raw[y * (w + 1)] = 0; // filter: none
+    for (let x = 0; x < w; x++) {
+      const j = (y * w + x) * 4;
+      let idx = 0;
+      if (d[j + 3] >= 128) {
+        const key = (d[j] << 16) | (d[j + 1] << 8) | d[j + 2];
+        idx = cache.get(key);
+        if (idx === undefined) {
+          let bd = Infinity;
+          for (let c = 0; c < pal.length; c++) {
+            const p = pal[c], dd = (p.r - d[j]) ** 2 + (p.g - d[j + 1]) ** 2 + (p.b - d[j + 2]) ** 2;
+            if (dd < bd) { bd = dd; idx = c + 1; }
+          }
+          cache.set(key, idx);
+        }
+      }
+      raw[y * (w + 1) + 1 + x] = idx;
+    }
+  }
+  const ihdr = new Uint8Array(13), iv = new DataView(ihdr.buffer);
+  iv.setUint32(0, w); iv.setUint32(4, h); ihdr[8] = 8; ihdr[9] = 3; // 8-bit, palette
+  const plte = new Uint8Array((pal.length + 1) * 3);
+  pal.forEach((p, i) => { plte[(i + 1) * 3] = p.r; plte[(i + 1) * 3 + 1] = p.g; plte[(i + 1) * 3 + 2] = p.b; });
+  const trns = new Uint8Array([0]); // only index 0 is transparent
+  const parts = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('PLTE', plte),
+    pngChunk('tRNS', trns), pngChunk('IDAT', await zlib(raw)), pngChunk('IEND', new Uint8Array())];
+  return new Uint8Array(await new Blob(parts).arrayBuffer());
+}
+const b64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+
+async function buildRaster(o, size, colors, cache) {
+  if (!cache[size]) { status(T('extract')); cache[size] = await extractFrames(file, Math.min(o.fps, 20), o.dur, size); }
+  const { frames, w, h } = cache[size];
+  const pal = buildPalette(frames, Math.min(colors, 255), null);
+  const FR = 60, step = FR / Math.min(o.fps, 20);
+  const scale = 512 / Math.max(w, h) * 100;
+  const off = [(512 - w * scale / 100) / 2, (512 - h * scale / 100) / 2];
+  const assets = [], layers = [];
+  let slot = 0;
+  for (let k = 0; k < frames.length; k++) {
+    status(T('rframe', k + 1, frames.length, size, colors)); subProg((k + 1) / frames.length);
+    await new Promise(r => setTimeout(r));
+    const png = await encodePng8(frames[k].c, pal);
+    assets.push({ id: 'i' + k, w, h, u: '', p: 'data:image/png;base64,' + b64(png), e: 1 });
+    const ip = Math.round(slot * step), op = Math.round((slot + frames[k].n) * step);
+    slot += frames[k].n;
+    layers.push({ ddd: 0, ind: k + 1, ty: 2, nm: 'f' + k, refId: 'i' + k, sr: 1, ip, op, st: 0, bm: 0,
+      ks: { o: { a: 0, k: 100 }, r: { a: 0, k: 0 }, p: { a: 0, k: [r1(off[0]), r1(off[1]), 0] }, a: { a: 0, k: [0, 0, 0] }, s: { a: 0, k: [r1(scale), r1(scale), 100] } } });
+  }
+  return { tgs: 1, v: '5.5.2', fr: FR, ip: 0, op: Math.round(slot * step), w: 512, h: 512, nm: 'sticker', ddd: 0, assets, layers };
+}
+
+async function toRasterTgs(o) {
+  // from best to smallest; take the first that fits 64 KB
+  const ladder = [[256, 128], [224, 96], [192, 96], [192, 64], [160, 64], [160, 32], [128, 48], [128, 24], [112, 24], [96, 24], [96, 12], [80, 12], [64, 8]];
+  const cache = {};
+  let json, blob;
+  for (const [size, colors] of ladder) {
+    json = await buildRaster(o, size, colors, cache);
+    blob = await gzip(JSON.stringify(json));
+    if (blob.size <= 64 * 1024) break;
+  }
+  return { blob, json, ext: 'tgs', ok: blob.size <= 64 * 1024 };
+}
+
 async function gzip(str) {
   const s = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
   return await new Response(s).blob();
@@ -872,6 +961,7 @@ const read = () => ({ res:+$('res').value, colors:+$('colors').value, fps:+$('fp
   omit:+$('omit').value, blur:+$('blur').value, transp:$('transp').checked });
 
 async function convertOne() {
+  if (fmt() === 'rtgs') return toRasterTgs(read());
   if (fmt() === 'webm') {
     const blob = await toWebm(read());
     return { blob, ext: 'webm', ok: blob.size <= 256 * 1024 };

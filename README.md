@@ -10,6 +10,7 @@
 
 Два режима:
 - **TGS**: анимированный (Lottie) стикер. Только векторы, ≤ 64 КБ, поэтому кадры векторизуются и выглядят стилизованно.
+- **TGS растр** (эксперимент): кадры хранятся внутри TGS как PNG-картинки с палитрой, без векторизации. Выглядит почти как исходник, размер и число цветов подбираются под 64 КБ. Официально Telegram требует векторы, поэтому @Stickers может такой файл не принять.
 - **WEBM**: видеостикер. VP9 с прозрачностью, 512 px, ≤ 3 с, ≤ 256 КБ. Выглядит как исходник.
 
 ## Как это работает
@@ -42,6 +43,7 @@ Editor ✂️: crop to a square (drag the frame, resize it by the corners, even 
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.
+- **TGS raster** (experimental) — frames are stored inside the TGS as palette PNG images, no vectorizing. Looks close to the source; size and color count are tuned to fit 64 KB. Telegram officially requires vectors, so @Stickers may reject it.
 - **WEBM** — video sticker. VP9 with transparency, 512 px, ≤ 3 s, ≤ 256 KB. Looks like the source.
 
 ## How it works
