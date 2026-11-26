@@ -1,4 +1,4 @@
-# GIF / видео → стикер Telegram
+# 🐼 Panda Stickers — GIF / видео → стикер Telegram
 
 **[Открыть конвертер](https://pandarens.github.io/img-to-tgs/)** · [English](#english)
 
@@ -26,11 +26,13 @@ python -m http.server 5173
 ---
 
 <a id="english"></a>
-# GIF / video → Telegram sticker
+# 🐼 Panda Stickers — GIF / video → Telegram sticker
 
-**[Open the converter](https://pandarens.github.io/img-to-tgs/)** · [Русский](#gif--видео--стикер-telegram)
+**[Open the converter](https://pandarens.github.io/img-to-tgs/)** · [Русский](#-panda-stickers--gif--видео--стикер-telegram)
 
 Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device. The interface is in Russian and English. Drop many files at once: they are converted one by one, download each separately or all of them as one ZIP.
+
+Extras: paste from clipboard (Ctrl+V), quality presets, preview on a Telegram-chat background, light and dark theme, settings are remembered, a how-to for adding stickers via @Stickers.
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.

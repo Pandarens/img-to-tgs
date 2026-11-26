@@ -3,87 +3,246 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GIF / Video → Telegram sticker (TGS / WEBM)</title>
+<title>Panda Stickers — GIF / Video → Telegram TGS & WEBM</title>
+<meta name="description" content="Convert GIF and video to Telegram stickers (TGS / WEBM) right in your browser.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7c5cff">
 <style>
-  :root { color-scheme: light dark; --bg:#0f1115; --card:#181b22; --fg:#e8e8ea; --mut:#9aa0aa; --acc:#2aabee; --bad:#ff6b6b; --ok:#4cd17a; }
-  @media (prefers-color-scheme: light) { :root { --bg:#f4f5f7; --card:#fff; --fg:#15171c; --mut:#636a75; } }
-  * { box-sizing: border-box; }
-  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
-  main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
-  h1 { font-size:22px; margin:0 0 4px; }
-  p.sub { color:var(--mut); margin:0 0 20px; }
-  .card { background:var(--card); border-radius:14px; padding:18px; margin-bottom:16px; }
-  #drop { border:2px dashed var(--mut); border-radius:12px; padding:36px; text-align:center; cursor:pointer; color:var(--mut); }
-  #drop.over { border-color:var(--acc); color:var(--acc); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
-  label { display:block; font-size:13px; color:var(--mut); }
-  label b { color:var(--fg); font-weight:600; }
-  input[type=range] { width:100%; }
-  button { background:var(--acc); color:#fff; border:0; border-radius:10px; padding:10px 18px; font-size:15px; cursor:pointer; }
-  button:disabled { opacity:.5; cursor:default; }
-  button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc); }
-  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .previews { display:flex; gap:16px; flex-wrap:wrap; }
-  .pv { flex:1 1 260px; }
-  .pv > div, .pv > img, .pv > video { width:100%; aspect-ratio:1; border-radius:10px; object-fit:contain;
-    background: repeating-conic-gradient(#8882 0 25%, transparent 0 50%) 0 0/20px 20px; }
-  #status { color:var(--mut); min-height:1.5em; }
-  #lang button { padding:4px 10px; font-size:13px; } #lang button.on { background:var(--acc); color:#fff; }
-  .qi { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; }
-  .qi:hover, .qi.sel { background:#8881; }
-  .qi .n { flex:1 1 140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .qi .s { color:var(--mut); font-size:13px; white-space:nowrap; }
-  .qi button { padding:4px 12px; font-size:13px; }
+  :root {
+    --bg:#0c0b12; --bg2:#14121d; --card:rgba(255,255,255,.045); --line:rgba(255,255,255,.09);
+    --fg:#f2f0f7; --mut:#9a96a8; --pink:#ff3d9a; --vio:#7c5cff; --grad:linear-gradient(135deg,var(--pink),var(--vio));
+    --ok:#3ddc97; --bad:#ff6b81; --shadow:0 10px 40px -12px rgba(0,0,0,.6); color-scheme:dark;
+  }
+  :root[data-theme=light] {
+    --bg:#f6f4fb; --bg2:#ffffff; --card:rgba(255,255,255,.85); --line:rgba(20,10,40,.09);
+    --fg:#1b1726; --mut:#6d6880; --shadow:0 10px 40px -16px rgba(60,30,120,.25); color-scheme:light;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font:15px/1.55 "Inter",system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--fg); background:var(--bg); min-height:100vh; }
+  body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background: radial-gradient(600px 400px at 10% -5%, rgba(255,61,154,.22), transparent 70%),
+                radial-gradient(700px 500px at 100% 0%, rgba(124,92,255,.22), transparent 70%); }
+  main { max-width:1160px; margin:0 auto; padding:22px 20px 40px; }
+  a { color:var(--pink); }
+
+  /* header */
+  header { display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+  header img { width:46px; height:46px; border-radius:14px; box-shadow:0 6px 24px -6px rgba(255,61,154,.6); }
+  header h1 { font-size:22px; line-height:1.2; margin:0; letter-spacing:-.01em; }
+  header h1 em { font-style:normal; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header p { margin:2px 0 0; color:var(--mut); font-size:13.5px; }
+  .tools { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .seg { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; }
+  .seg button { background:none; border:0; color:var(--mut); padding:6px 11px; border-radius:9px; font:600 13px inherit; font-family:inherit; cursor:pointer; }
+  .seg button.on { background:var(--grad); color:#fff; }
+  .icon-btn { width:38px; height:38px; display:grid; place-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; color:var(--fg); cursor:pointer; font-size:17px; }
+
+  /* layout */
+  .layout { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:20px; align-items:start; }
+  @media (max-width:880px) { .layout { grid-template-columns:1fr; } }
+  .stick { position:sticky; top:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px; margin-bottom:18px; box-shadow:var(--shadow); backdrop-filter:blur(14px); }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:0 0 12px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .step { width:20px; height:20px; border-radius:50%; background:var(--grad); color:#fff; display:inline-grid; place-items:center; font-size:11px; letter-spacing:0; }
+
+  /* drop zone */
+  #drop { position:relative; border-radius:16px; padding:34px 18px; text-align:center; cursor:pointer; transition:.2s;
+    background: linear-gradient(var(--bg2),var(--bg2)) padding-box, var(--grad) border-box; border:2px dashed transparent; }
+  #drop:hover, #drop.over { transform:translateY(-2px); box-shadow:0 14px 40px -14px rgba(255,61,154,.55); }
+  #drop.over { background: linear-gradient(rgba(124,92,255,.12),rgba(255,61,154,.12)) padding-box, var(--grad) border-box; }
+  #drop .big { font-size:42px; line-height:1; margin-bottom:10px; }
+  #drop .t1 { font-weight:650; font-size:16px; }
+  #drop .t2 { color:var(--mut); font-size:13px; margin-top:4px; }
+  kbd { font:600 11.5px ui-monospace,monospace; padding:2px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); }
+
+  /* format tiles */
+  .fmt { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .fmt label { position:relative; display:block; cursor:pointer; padding:14px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg2); transition:.15s; }
+  .fmt label:hover { border-color:rgba(255,61,154,.5); }
+  .fmt input { position:absolute; opacity:0; }
+  .fmt label:has(input:checked) { border-color:transparent; background: linear-gradient(var(--bg2),var(--bg2)) padding-box, var(--grad) border-box; box-shadow:0 8px 26px -12px rgba(124,92,255,.7); }
+  .fmt b { display:block; font-size:16px; }
+  .fmt small { color:var(--mut); font-size:12.5px; line-height:1.35; display:block; margin-top:2px; }
+  .fmt .badge { position:absolute; top:12px; right:12px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--mut); }
+
+  /* presets + sliders */
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px; }
+  .chip { border:1px solid var(--line); background:var(--bg2); color:var(--fg); padding:7px 13px; border-radius:999px; font:600 13px inherit; font-family:inherit; cursor:pointer; }
+  .chip.on { background:var(--grad); color:#fff; border-color:transparent; }
+  details { margin-top:10px; }
+  summary { cursor:pointer; color:var(--mut); font-size:13.5px; font-weight:600; list-style:none; padding:6px 0; }
+  summary::before { content:"▸ "; } details[open] summary::before { content:"▾ "; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px 18px; margin-top:8px; }
+  .grid label, .opt label { display:block; font-size:13px; color:var(--mut); }
+  .grid label b { color:var(--fg); }
+  input[type=range] { width:100%; accent-color:var(--pink); margin-top:6px; }
+  .opt { display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; }
+  .opt label { display:flex; gap:8px; align-items:center; color:var(--fg); font-weight:550; cursor:pointer; }
+  input[type=checkbox] { accent-color:var(--pink); width:16px; height:16px; }
+  .dur { margin-top:14px; }
+
+  /* buttons */
+  .actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+  .btn { border:0; border-radius:12px; padding:11px 18px; font:650 14.5px inherit; font-family:inherit; cursor:pointer; color:#fff; background:var(--grad); transition:.15s; display:inline-flex; gap:8px; align-items:center; }
+  .btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 10px 26px -10px rgba(255,61,154,.8); }
+  .btn.ghost { background:var(--bg2); color:var(--fg); border:1px solid var(--line); }
+  .btn:disabled { opacity:.45; cursor:default; }
+
+  /* status + progress */
+  #status { color:var(--mut); font-size:13.5px; min-height:1.4em; margin-top:12px; }
+  .bar { height:6px; border-radius:99px; background:var(--line); overflow:hidden; margin-top:8px; opacity:0; transition:opacity .2s; }
+  .bar.on { opacity:1; }
+  .bar i { display:block; height:100%; width:0; background:var(--grad); border-radius:99px; transition:width .2s; }
+
+  /* preview */
+  .previews { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pv span.lbl { display:block; font-size:12px; color:var(--mut); font-weight:650; text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px; }
+  .pv > div { width:100%; aspect-ratio:1; border-radius:14px; overflow:hidden; border:1px solid var(--line); display:grid; place-items:center; color:var(--mut); font-size:13px; text-align:center;
+    background: repeating-conic-gradient(rgba(128,128,128,.14) 0 25%, transparent 0 50%) 0 0/18px 18px; }
+  .pv > div > * { width:100%; height:100%; object-fit:contain; }
+  .pv > div > span { width:auto; height:auto; padding:10px; }
+  .tgwrap:has(#tgout:empty) { display:none; }
+  .tgwrap { margin-top:14px; display:flex; justify-content:center; padding:18px; border-radius:16px; background:linear-gradient(160deg,#6ba0c9,#8dbf8a); }
+  :root[data-theme=light] .tgwrap { background:linear-gradient(160deg,#a7cdee,#c5e3b4); }
+  .tgwrap > div { width:180px; height:180px; }
+  .tgwrap > div > * { width:100%; height:100%; object-fit:contain; }
+  .result-meta { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .pill { font-size:12.5px; font-weight:700; padding:4px 10px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); }
+  .pill.ok { color:var(--ok); border-color:rgba(61,220,151,.4); } .pill.bad { color:var(--bad); border-color:rgba(255,107,129,.4); }
+
+  /* queue */
+  .qhead { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  #queue { display:flex; flex-direction:column; gap:6px; max-height:360px; overflow:auto; }
+  .qi { display:flex; gap:10px; align-items:center; padding:7px; border-radius:12px; cursor:pointer; border:1px solid transparent; }
+  .qi:hover { background:var(--bg2); }
+  .qi.sel { background:var(--bg2); border-color:rgba(255,61,154,.45); }
+  .qi .th { width:40px; height:40px; border-radius:9px; flex:none; overflow:hidden; background:repeating-conic-gradient(rgba(128,128,128,.14) 0 25%, transparent 0 50%) 0 0/10px 10px; }
+  .qi .th > * { width:100%; height:100%; object-fit:cover; }
+  .qi .meta { flex:1; min-width:0; }
+  .qi .n { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:14px; }
+  .qi .s { color:var(--mut); font-size:12.5px; }
+  .qi button { flex:none; width:32px; height:32px; border-radius:9px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; }
+  .qi button:hover { border-color:var(--pink); }
+  .spin { display:inline-block; width:10px; height:10px; border:2px solid var(--pink); border-right-color:transparent; border-radius:50%; animation:sp .7s linear infinite; vertical-align:-1px; margin-right:4px; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+
+  /* how-to */
+  .how ol { margin:0; padding-left:20px; color:var(--mut); font-size:14px; }
+  .how li { margin:4px 0; } .how li b { color:var(--fg); }
+  .note { color:var(--mut); font-size:12.5px; margin-top:10px; }
+  footer { text-align:center; color:var(--mut); font-size:12.5px; margin-top:10px; }
   .ok { color:var(--ok); } .bad { color:var(--bad); }
+
+  /* toast */
+  #toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,30px); opacity:0; background:var(--bg2); border:1px solid var(--line); color:var(--fg);
+    padding:10px 16px; border-radius:12px; box-shadow:var(--shadow); font-size:14px; transition:.25s; pointer-events:none; z-index:10; }
+  #toast.on { opacity:1; transform:translate(-50%,0); }
 </style>
 </head>
 <body>
 <main>
-  <div class="row" style="justify-content:space-between"><h1><span data-i="h1"></span></h1><div class="row" id="lang"><button class="sec" data-l="ru">RU</button><button class="sec" data-l="en">EN</button></div></div>
-  <p class="sub"><span data-i="sub"></span></p>
+  <header>
+    <img src="favicon.svg" alt="">
+    <div>
+      <h1><em>Panda</em> Stickers</h1>
+      <p><span data-i="sub"></span></p>
+    </div>
+    <div class="tools">
+      <div class="seg" id="lang"><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+      <button class="icon-btn" id="theme" title="Theme">🌙</button>
+    </div>
+  </header>
 
-  <div class="card">
-    <div id="drop"><span data-i="drop"></span><input id="file" type="file" multiple accept="image/gif,video/*,image/webp,image/png" hidden></div>
-  </div>
+  <div class="layout">
+    <div>
+      <section class="card">
+        <h2><span class="step">1</span><span data-i="s1"></span></h2>
+        <div id="drop">
+          <div class="big">🐼</div>
+          <div class="t1"><span data-i="drop"></span></div>
+          <div class="t2"><span data-i="drop2"></span> · <kbd>Ctrl</kbd>+<kbd>V</kbd></div>
+          <input id="file" type="file" multiple accept="image/gif,video/*,image/webp,image/png" hidden>
+        </div>
+      </section>
 
-  <div class="card">
-    <div class="row" style="margin-bottom:14px">
-      <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="fmt" value="tgs" checked> <b>TGS</b> — <span data-i="tgs"></span></label>
-      <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="fmt" value="webm"> <b>WEBM</b> — <span data-i="webm"></span></label>
-    </div>
-    <div class="grid" id="tgs-opts">
-      <label class="t"><span data-i="res"></span>: <b id="v-res"></b>px<input id="res" type="range" min="48" max="320" step="8" value="192"></label>
-      <label class="t"><span data-i="colors"></span>: <b id="v-colors"></b><input id="colors" type="range" min="2" max="32" value="12"></label>
-      <label class="t"><span data-i="fps"></span>: <b id="v-fps"></b><input id="fps" type="range" min="5" max="30" value="15"></label>
-      <label><span data-i="dur"></span>: <b id="v-dur"></b><span data-i="sec"></span><input id="dur" type="range" min="0.5" max="3" step="0.1" value="3"></label>
-      <label class="t"><span data-i="omit"></span>: <b id="v-omit"></b><input id="omit" type="range" min="0" max="40" value="4"></label>
-      <label class="t"><span data-i="blur"></span>: <b id="v-blur"></b><input id="blur" type="range" min="0" max="5" value="0"></label>
-    </div>
-    <div class="row" style="margin-top:14px">
-      <label class="t" style="display:flex;gap:6px;align-items:center"><input id="auto" type="checkbox" checked> <b><span data-i="auto"></span></b></label>
-      <label class="t" style="display:flex;gap:6px;align-items:center"><input id="transp" type="checkbox"> <b><span data-i="transp"></span></b></label>
-    </div>
-    <div class="row" style="margin-top:14px">
-      <button id="go" disabled><span data-i="go"></span></button>
-      <button id="dl" class="sec" disabled><span data-i="dl"></span></button>
-      <span id="status"></span>
-    </div>
-  </div>
+      <section class="card">
+        <h2><span class="step">2</span><span data-i="s2"></span></h2>
+        <div class="fmt">
+          <label><input type="radio" name="fmt" value="tgs" checked><span class="badge">≤ 64 KB</span><b>TGS</b><small data-i="tgs"></small></label>
+          <label><input type="radio" name="fmt" value="webm"><span class="badge">≤ 256 KB</span><b>WEBM</b><small data-i="webm"></small></label>
+        </div>
 
-  <div class="card" id="qcard" style="display:none">
-    <div class="row" style="justify-content:space-between;margin-bottom:10px">
-      <b><span data-i="files"></span> (<span id="qcount">0</span>)</b>
-      <button id="zip" disabled><span data-i="zip"></span></button>
-    </div>
-    <div id="queue"></div>
-  </div>
+        <div class="chips t" id="presets">
+          <button class="chip" data-p="max"><span data-i="pMax"></span></button>
+          <button class="chip" data-p="bal"><span data-i="pBal"></span></button>
+          <button class="chip" data-p="min"><span data-i="pMin"></span></button>
+        </div>
 
-  <div class="card previews">
-    <div class="pv"><label><span data-i="src"></span></label><div id="src"></div></div>
-    <div class="pv"><label><span data-i="out"></span></label><div id="out"></div></div>
+        <label class="dur" style="display:block;font-size:13px;color:var(--mut)"><span data-i="dur"></span>: <b id="v-dur" style="color:var(--fg)"></b> <span data-i="sec"></span><input id="dur" type="range" min="0.5" max="3" step="0.1" value="3"></label>
+
+        <details class="t">
+          <summary><span data-i="adv"></span></summary>
+          <div class="grid">
+            <label><span data-i="res"></span>: <b id="v-res"></b> px<input id="res" type="range" min="48" max="320" step="8" value="192"></label>
+            <label><span data-i="colors"></span>: <b id="v-colors"></b><input id="colors" type="range" min="2" max="32" value="12"></label>
+            <label><span data-i="fps"></span>: <b id="v-fps"></b><input id="fps" type="range" min="5" max="30" value="15"></label>
+            <label><span data-i="omit"></span>: <b id="v-omit"></b><input id="omit" type="range" min="0" max="40" value="4"></label>
+            <label><span data-i="blur"></span>: <b id="v-blur"></b><input id="blur" type="range" min="0" max="5" value="0"></label>
+          </div>
+        </details>
+        <div class="opt t">
+          <label><input id="auto" type="checkbox" checked><span data-i="auto"></span></label>
+          <label><input id="transp" type="checkbox"><span data-i="transp"></span></label>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="go" disabled>⚡ <span data-i="go"></span></button>
+        </div>
+        <div id="status"></div>
+        <div class="bar" id="bar"><i></i></div>
+      </section>
+
+      <section class="card" id="qcard" style="display:none">
+        <div class="qhead">
+          <h2 style="margin:0"><span data-i="files"></span> · <span id="qcount">0</span></h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost" id="clear">🗑 <span data-i="clear"></span></button>
+            <button class="btn" id="zip" disabled>📦 <span data-i="zip"></span></button>
+          </div>
+        </div>
+        <div id="queue"></div>
+      </section>
+    </div>
+
+    <div class="stick">
+      <section class="card">
+        <h2><span class="step">3</span><span data-i="s3"></span></h2>
+        <div class="previews">
+          <div class="pv"><span class="lbl" data-i="src"></span><div id="src"><span data-i="empty"></span></div></div>
+          <div class="pv"><span class="lbl" data-i="out"></span><div id="out"><span data-i="empty"></span></div></div>
+        </div>
+        <div class="tgwrap" title="Telegram"><div id="tgout"></div></div>
+        <div class="result-meta">
+          <span class="pill" id="pill" style="visibility:hidden"></span>
+          <button class="btn" id="dl" disabled>⬇ <span data-i="dl"></span></button>
+        </div>
+      </section>
+
+      <section class="card how">
+        <h2>✈️ <span data-i="howT"></span></h2>
+        <ol>
+          <li data-i="how1"></li>
+          <li data-i="how2"></li>
+          <li data-i="how3"></li>
+        </ol>
+        <div class="note" data-i="note"></div>
+      </section>
+    </div>
   </div>
-  <p class="sub"><span data-i="note"></span></p>
+  <footer><span data-i="foot"></span> · <a href="https://github.com/Pandarens/img-to-tgs" target="_blank" rel="noopener">GitHub</a></footer>
 </main>
+<div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie_light.min.js"></script>
@@ -91,50 +250,97 @@
 const $ = id => document.getElementById(id);
 const I18N = {
   ru: {
-    h1: 'GIF / видео → стикер Telegram', sub: 'Конвертер в стикеры Telegram. Всё работает в браузере, файлы никуда не загружаются.',
-    drop: 'Перетащи GIF / MP4 / WEBM сюда (можно несколько) или нажми, чтобы выбрать', tgs: 'векторный, ≤ 64 КБ, стилизованный', webm: 'видеостикер, ≤ 256 КБ, как исходник',
-    res: 'Разрешение трассировки', colors: 'Цветов', fps: 'Кадров в секунду', dur: 'Макс. длительность', sec: 'с', omit: 'Убрать мелкие детали', blur: 'Сглаживание',
-    auto: 'Автоматически ужать до 64 КБ', transp: 'Убрать фон (цвет угла)', go: 'Конвертировать', dl: 'Скачать', src: 'Исходник', out: 'Результат',
-    note: 'TGS: 512×512, до 3 с, 60 fps, ≤ 64 КБ, только векторы — кадры векторизуются, получается «постеризованный» стиль. Для точной картинки выбирай WEBM: VP9 с прозрачностью, 512 px, до 3 с, ≤ 256 КБ.',
+    sub: 'GIF и видео → стикеры Telegram. Прямо в браузере, файлы никуда не загружаются.',
+    s1: 'Загрузи файлы', s2: 'Формат и качество', s3: 'Результат',
+    drop: 'Перетащи GIF / MP4 / WEBM или нажми, чтобы выбрать', drop2: 'можно сразу несколько',
+    tgs: 'Векторный анимированный стикер, стилизованная картинка', webm: 'Видеостикер — выглядит точно как исходник, с прозрачностью',
+    pMax: '💎 Максимум деталей', pBal: '⚖️ Баланс', pMin: '🪶 Лёгкий', adv: 'Тонкая настройка',
+    res: 'Разрешение трассировки', colors: 'Цветов', fps: 'Кадров в секунду', dur: 'Длительность', sec: 'с', omit: 'Убрать мелкие детали', blur: 'Сглаживание',
+    auto: 'Ужать до 64 КБ автоматически', transp: 'Убрать фон (цвет угла)', go: 'Конвертировать заново', dl: 'Скачать', src: 'Исходник', out: 'Стикер',
+    empty: 'Здесь появится превью', clear: 'Очистить',
+    howT: 'Как добавить в Telegram',
+    how1: 'Открой бота <a href="https://t.me/Stickers" target="_blank" rel="noopener">@Stickers</a>',
+    how2: 'Отправь <b>/newanimated</b> для TGS или <b>/newvideo</b> для WEBM',
+    how3: 'Пришли эмодзи и скачанный файл — готово 🎉',
+    note: 'TGS: 512×512, до 3 с, только векторы, ≤ 64 КБ — поэтому картинка упрощается. WEBM: VP9 с прозрачностью, 512 px, до 3 с, ≤ 256 КБ.',
+    foot: 'Сделано с 🐼 · всё работает локально в браузере',
     noWC: 'Браузер не поддерживает WebCodecs — открой в Chrome / Edge / Firefox', noID: 'Браузер не поддерживает ImageDecoder — открой в Chrome / Edge / Firefox',
     badVideo: 'Не удалось открыть видео', extract: 'Извлекаю кадры…', encode: k => `Кодирую WEBM (${k} кбит/с)…`, trace: (a, b) => `Векторизую кадр ${a}/${b}…`,
     done: (kb, ok, lim) => `Готово: ${kb} КБ ${ok ? '✓' : `— больше ${lim} КБ, Telegram не примет`}`, err: 'Ошибка: ',
     files: 'Файлы', zip: 'Скачать все (ZIP)', kb: 'КБ', working: 'конвертирую…', waiting: 'в очереди', batchDone: (n, t) => `Готово: ${n} из ${t}`,
     shrink: (kb, o) => `${kb} КБ — ужимаю (fps ${o.fps}, цветов ${o.colors}, ${o.res}px)…`,
+    fits: lim => `✓ влезает в ${lim} КБ`, over: lim => `⚠ больше ${lim} КБ`, added: n => `Добавлено файлов: ${n}`, zipped: 'Архив сохранён 📦', unsupported: 'Этот тип файла не поддерживается',
   },
   en: {
-    h1: 'GIF / video → Telegram sticker', sub: 'Converts to Telegram stickers right in your browser. Files are never uploaded anywhere.',
-    drop: 'Drop GIF / MP4 / WEBM files here (several at once) or click to choose', tgs: 'vector, ≤ 64 KB, stylized', webm: 'video sticker, ≤ 256 KB, looks like the source',
-    res: 'Tracing resolution', colors: 'Colors', fps: 'Frames per second', dur: 'Max duration', sec: 's', omit: 'Drop small details', blur: 'Smoothing',
-    auto: 'Auto-shrink to 64 KB', transp: 'Remove background (corner color)', go: 'Convert', dl: 'Download', src: 'Source', out: 'Result',
-    note: 'TGS: 512×512, up to 3 s, 60 fps, ≤ 64 KB, vectors only — frames get vectorized, so the result looks posterized. For an exact picture choose WEBM: VP9 with transparency, 512 px, up to 3 s, ≤ 256 KB.',
+    sub: 'GIF & video → Telegram stickers. Right in your browser, nothing is uploaded.',
+    s1: 'Add files', s2: 'Format & quality', s3: 'Result',
+    drop: 'Drop GIF / MP4 / WEBM or click to choose', drop2: 'several at once is fine',
+    tgs: 'Vector animated sticker, stylized look', webm: 'Video sticker — looks exactly like the source, with transparency',
+    pMax: '💎 Max detail', pBal: '⚖️ Balanced', pMin: '🪶 Light', adv: 'Fine tuning',
+    res: 'Tracing resolution', colors: 'Colors', fps: 'Frames per second', dur: 'Duration', sec: 's', omit: 'Drop small details', blur: 'Smoothing',
+    auto: 'Auto-shrink to 64 KB', transp: 'Remove background (corner color)', go: 'Convert again', dl: 'Download', src: 'Source', out: 'Sticker',
+    empty: 'Preview shows up here', clear: 'Clear',
+    howT: 'How to add to Telegram',
+    how1: 'Open <a href="https://t.me/Stickers" target="_blank" rel="noopener">@Stickers</a> bot',
+    how2: 'Send <b>/newanimated</b> for TGS or <b>/newvideo</b> for WEBM',
+    how3: 'Send an emoji and the downloaded file — done 🎉',
+    note: 'TGS: 512×512, up to 3 s, vectors only, ≤ 64 KB — so the picture gets simplified. WEBM: VP9 with transparency, 512 px, up to 3 s, ≤ 256 KB.',
+    foot: 'Made with 🐼 · everything runs locally in your browser',
     noWC: 'This browser has no WebCodecs — use Chrome / Edge / Firefox', noID: 'This browser has no ImageDecoder — use Chrome / Edge / Firefox',
     badVideo: 'Could not open the video', extract: 'Extracting frames…', encode: k => `Encoding WEBM (${k} kbps)…`, trace: (a, b) => `Vectorizing frame ${a}/${b}…`,
     done: (kb, ok, lim) => `Done: ${kb} KB ${ok ? '✓' : `— over ${lim} KB, Telegram will reject it`}`, err: 'Error: ',
     files: 'Files', zip: 'Download all (ZIP)', kb: 'KB', working: 'converting…', waiting: 'queued', batchDone: (n, t) => `Done: ${n} of ${t}`,
     shrink: (kb, o) => `${kb} KB — shrinking (fps ${o.fps}, colors ${o.colors}, ${o.res}px)…`,
+    fits: lim => `✓ fits ${lim} KB`, over: lim => `⚠ over ${lim} KB`, added: n => `Files added: ${n}`, zipped: 'Archive saved 📦', unsupported: 'This file type is not supported',
   },
 };
 let LANG = localStorage.getItem('lang') || (navigator.language.startsWith('ru') ? 'ru' : 'en');
 const T = (k, ...a) => { const v = I18N[LANG][k]; return typeof v === 'function' ? v(...a) : v; };
 function applyLang(l) {
   LANG = l; localStorage.setItem('lang', l); document.documentElement.lang = l;
-  document.querySelectorAll('[data-i]').forEach(e => e.textContent = T(e.dataset.i));
+  document.querySelectorAll('[data-i]').forEach(e => e.innerHTML = T(e.dataset.i)); // strings are our own
   document.querySelectorAll('#lang button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
-  if (typeof renderQueue === 'function' && window.queueReady) renderQueue();
+  if (window.queueReady) { renderQueue(); if (queue[sel]) showResult(queue[sel]); }
 }
 document.querySelectorAll('#lang button').forEach(b => b.onclick = () => applyLang(b.dataset.l));
-applyLang(LANG);
 
+// theme
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t; localStorage.setItem('theme', t);
+  $('theme').textContent = t === 'light' ? '🌙' : '☀️';
+}
+applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+$('theme').onclick = () => applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+
+let toastT;
+function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200); }
+function setProg(x) { $('bar').classList.toggle('on', x != null); $('bar').firstElementChild.style.width = ((x || 0) * 100).toFixed(1) + '%'; }
+let progBase = 0, progSpan = 1; // overall progress for the queue
+const subProg = x => setProg(progBase + progSpan * x);
+
+// settings: sliders, presets, persistence
 const opts = ['res','colors','fps','dur','omit','blur'];
-opts.forEach(k => { const f = () => $('v-'+k).textContent = $(k).value; $(k).oninput = f; f(); });
+const PRESETS = { max: { res: 256, colors: 16, fps: 20, omit: 2, blur: 0 }, bal: { res: 192, colors: 12, fps: 15, omit: 4, blur: 0 }, min: { res: 128, colors: 8, fps: 12, omit: 10, blur: 1 } };
+const saveSettings = () => localStorage.setItem('settings', JSON.stringify({
+  ...Object.fromEntries(opts.map(k => [k, +$(k).value])), auto: $('auto').checked, transp: $('transp').checked, fmt: fmt() }));
+function markPreset() {
+  document.querySelectorAll('#presets .chip').forEach(c => c.classList.toggle('on',
+    Object.entries(PRESETS[c.dataset.p]).every(([k, v]) => +$(k).value === v)));
+}
+function setVals(o) { Object.entries(o).forEach(([k, v]) => { if (opts.includes(k)) { $(k).value = v; $('v-' + k).textContent = v; } }); markPreset(); }
+opts.forEach(k => { const f = () => { $('v-'+k).textContent = $(k).value; markPreset(); saveSettings(); }; $(k).oninput = f; $('v-'+k).textContent = $(k).value; });
+$('auto').onchange = $('transp').onchange = saveSettings;
+document.querySelectorAll('#presets .chip').forEach(c => c.onclick = () => { setVals(PRESETS[c.dataset.p]); saveSettings(); if (window.queueReady && queue.length) $('go').click(); });
 
-let file = null, anim = null;
+let file = null, anim = null, anim2 = null;
 const fmt = () => document.querySelector('input[name=fmt]:checked').value;
-document.querySelectorAll('input[name=fmt]').forEach(r => r.onchange = () => {
-  document.querySelectorAll('.t').forEach(el => el.style.display = fmt() === 'tgs' ? '' : 'none');
-  if (queue.length) $('go').click();
-});
+const syncFmt = () => document.querySelectorAll('.t').forEach(el => el.style.display = fmt() === 'tgs' ? '' : 'none');
+document.querySelectorAll('input[name=fmt]').forEach(r => r.onchange = () => { syncFmt(); saveSettings(); if (queue.length) $('go').click(); });
+try {
+  const s = JSON.parse(localStorage.getItem('settings') || 'null');
+  if (s) { setVals(s); $('auto').checked = s.auto !== false; $('transp').checked = !!s.transp; if (s.fmt) document.querySelector(`input[name=fmt][value=${s.fmt}]`).checked = true; }
+} catch {}
+markPreset(); syncFmt();
 
 // ---------- WEBM: WebCodecs VP9 (colour + separate alpha stream) + tiny WebM muxer ----------
 // Browsers can't encode VP9 alpha directly, so we encode alpha as a second VP9 stream
@@ -206,7 +412,7 @@ async function toWebm(o) {
   const LIMIT = 256 * 1024;
   let kbps = Math.floor(LIMIT * 8 / (durMs / 1000) / 1000 * 0.8), blob;
   for (let attempt = 0; attempt < 6; attempt++) {
-    status(T('encode', kbps));
+    status(T('encode', kbps)); subProg(Math.min(.95, (attempt + 1) / 3));
     const col = await encodeStream(list, w, h, kbps, fr => new VideoFrame(fr.c, { timestamp: fr.us, visibleRect: { x: 0, y: 0, width: w, height: h }, alpha: 'discard' }));
     const alp = await encodeStream(list, w, h, Math.max(50, kbps >> 2), (fr) => {
       const i = list.indexOf(fr);
@@ -220,21 +426,27 @@ async function toWebm(o) {
 }
 const status = (t, cls='') => { $('status').textContent = t; $('status').className = cls; };
 
-// ---------- input ----------
+// ---------- input: click, drag & drop, paste ----------
 $('drop').onclick = () => $('file').click();
 $('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
-$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
-$('drop').ondragleave = () => $('drop').classList.remove('over');
-$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); addFiles(e.dataTransfer.files); };
+let dragDepth = 0;
+addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; $('drop').classList.add('over'); });
+addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('drop').classList.remove('over'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; $('drop').classList.remove('over'); addFiles(e.dataTransfer.files); });
+addEventListener('paste', e => { const fs = [...(e.clipboardData?.files || [])]; if (fs.length) addFiles(fs); });
 
 let queue = [], sel = -1, busy = false; window.queueReady = true;
 const baseName = f => f.name.replace(/\.[^.]+$/, '') || 'sticker';
+const media = (url, isVideo, fit = 'contain') => isVideo
+  ? `<video src="${url}" autoplay loop muted playsinline style="object-fit:${fit}"></video>`
+  : `<img src="${url}" alt="" style="object-fit:${fit}">`;
 
 function addFiles(list) {
   const fs = [...list].filter(f => /^(image|video)\//.test(f.type));
-  if (!fs.length) return;
-  queue.push(...fs.map(f => ({ file: f, state: 'wait' })));
-  $('go').disabled = false;
+  if (!fs.length) { if (list.length) toast(T('unsupported')); return; }
+  queue.push(...fs.map(f => ({ file: f, state: 'wait', url: URL.createObjectURL(f) })));
+  if (fs.length > 1 || queue.length > 1) toast(T('added', fs.length));
   if (sel < 0) select(0);
   renderQueue();
   runQueue();
@@ -249,68 +461,87 @@ function renderQueue() {
     row.className = 'qi' + (i === sel ? ' sel' : '');
     const st = q.state === 'done' ? `${(q.blob.size / 1024).toFixed(1)} ${T('kb')} · .${q.ext} ${q.ok ? '✓' : '⚠'}`
       : q.state === 'work' ? T('working') : q.state === 'err' ? T('err') + q.error : T('waiting');
-    row.innerHTML = `<span class="n"></span><span class="s ${q.state === 'done' ? (q.ok ? 'ok' : 'bad') : q.state === 'err' ? 'bad' : ''}"></span>`;
+    const cls = q.state === 'done' ? (q.ok ? 'ok' : 'bad') : q.state === 'err' ? 'bad' : '';
+    row.innerHTML = `<div class="th">${media(q.url, q.file.type.startsWith('video'), 'cover')}</div>
+      <div class="meta"><div class="n"></div><div class="s ${cls}">${q.state === 'work' ? '<i class="spin"></i>' : ''}<span></span></div></div>`;
     row.querySelector('.n').textContent = q.file.name;
-    row.querySelector('.s').textContent = st;
+    row.querySelector('.s span').textContent = st;
     if (q.state === 'done') {
-      const b = document.createElement('button'); b.className = 'sec'; b.textContent = '⬇';
+      const b = document.createElement('button'); b.textContent = '⬇'; b.title = T('dl');
       b.onclick = ev => { ev.stopPropagation(); download(q); };
       row.append(b);
     }
-    const x = document.createElement('button'); x.className = 'sec'; x.textContent = '✕';
-    x.onclick = ev => { ev.stopPropagation(); if (busy && q.state === 'work') return; queue.splice(i, 1); if (sel >= queue.length) sel = queue.length - 1; select(sel); renderQueue(); };
+    const x = document.createElement('button'); x.textContent = '✕';
+    x.onclick = ev => { ev.stopPropagation(); if (q.state === 'work') return; queue.splice(i, 1); if (sel >= queue.length) sel = queue.length - 1; select(sel); renderQueue(); };
     row.append(x);
     row.onclick = () => { select(i); renderQueue(); };
     $('queue').append(row);
   });
-  const done = queue.filter(q => q.state === 'done');
-  $('zip').disabled = done.length < 1;
+  $('zip').disabled = !queue.some(q => q.state === 'done');
+  $('go').disabled = busy || !queue.length;
+}
+
+function clearOut() {
+  if (anim) { anim.destroy(); anim = null; }
+  if (anim2) { anim2.destroy(); anim2 = null; }
+  $('out').innerHTML = `<span>${T('empty')}</span>`; $('tgout').innerHTML = '';
+  $('pill').style.visibility = 'hidden';
 }
 
 function select(i) {
   sel = i;
-  if (anim) { anim.destroy(); anim = null; }
-  $('out').innerHTML = ''; $('src').innerHTML = '';
+  clearOut();
   const q = queue[i];
-  if (!q) { file = null; $('dl').disabled = true; $('go').disabled = true; status(''); return; }
+  if (!q) { file = null; $('src').innerHTML = `<span>${T('empty')}</span>`; $('dl').disabled = true; status(''); return; }
   file = q.file;
-  const url = URL.createObjectURL(q.file);
-  $('src').innerHTML = q.file.type.startsWith('video')
-    ? `<video src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>`
-    : `<img src="${url}" style="width:100%;height:100%;object-fit:contain">`;
+  $('src').innerHTML = media(q.url, q.file.type.startsWith('video'));
   showResult(q);
 }
 
 function showResult(q) {
   $('dl').disabled = q.state !== 'done';
-  if (q.state !== 'done') { status(q.state === 'err' ? T('err') + q.error : q.file.name, q.state === 'err' ? 'bad' : ''); return; }
-  const kb = q.blob.size / 1024, lim = q.ext === 'tgs' ? 64 : 256;
-  status(T('done', kb.toFixed(1), kb <= lim, lim), kb <= lim ? 'ok' : 'bad');
+  if (q.state !== 'done') { if (!busy) status(q.state === 'err' ? T('err') + q.error : q.file.name, q.state === 'err' ? 'bad' : ''); return; }
+  const kb = q.blob.size / 1024, lim = q.ext === 'tgs' ? 64 : 256, ok = kb <= lim;
+  if (!busy) status(T('done', kb.toFixed(1), ok, lim), ok ? 'ok' : 'bad');
+  $('pill').style.visibility = ''; $('pill').className = 'pill ' + (ok ? 'ok' : 'bad');
+  $('pill').textContent = `${kb.toFixed(1)} ${T('kb')} · .${q.ext} · ${T(ok ? 'fits' : 'over', lim)}`;
   if (anim) { anim.destroy(); anim = null; }
-  $('out').innerHTML = '';
-  if (q.ext === 'webm') $('out').innerHTML = `<video src="${URL.createObjectURL(q.blob)}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"></video>`;
-  else anim = lottie.loadAnimation({ container: $('out'), renderer: 'svg', loop: true, autoplay: true, animationData: q.json });
+  if (anim2) { anim2.destroy(); anim2 = null; }
+  $('out').innerHTML = ''; $('tgout').innerHTML = '';
+  if (q.ext === 'webm') {
+    q.outUrl ||= URL.createObjectURL(q.blob);
+    $('out').innerHTML = media(q.outUrl, true); $('tgout').innerHTML = media(q.outUrl, true);
+  } else {
+    anim = lottie.loadAnimation({ container: $('out'), renderer: 'svg', loop: true, autoplay: true, animationData: q.json });
+    anim2 = lottie.loadAnimation({ container: $('tgout'), renderer: 'svg', loop: true, autoplay: true, animationData: q.json });
+  }
 }
 
 async function runQueue() {
   if (busy) return;
-  busy = true; $('go').disabled = true;
+  busy = true; renderQueue();
   for (let i = 0; i < queue.length; i++) {
     const q = queue[i];
     if (q.state !== 'wait') continue;
-    q.state = 'work'; renderQueue();
+    const todo = queue.filter(x => x.state === 'wait' || x.state === 'work').length;
+    const finished = queue.filter(x => x.state === 'done' || x.state === 'err').length;
+    progSpan = 1 / (todo + finished); progBase = finished * progSpan; setProg(progBase);
+    q.state = 'work'; q.outUrl = null; renderQueue();
     file = q.file;
     try {
       Object.assign(q, await convertOne(), { state: 'done' });
     } catch (e) { console.error(e); q.state = 'err'; q.error = e.message; }
     file = queue[sel]?.file || null;
     renderQueue();
-    if (queue[sel] === q) showResult(q);
+    if (queue[sel] === q) { busy = queue.some(x => x.state === 'wait'); showResult(q); busy = true; }
   }
-  busy = false; $('go').disabled = !queue.length;
+  busy = false; setProg(null); renderQueue();
   const n = queue.filter(q => q.state === 'done').length;
   if (queue.length > 1) status(T('batchDone', n, queue.length), 'ok');
+  else if (queue[sel]) showResult(queue[sel]);
 }
+
+$('clear').onclick = () => { if (busy) return; queue = []; sel = -1; select(-1); renderQueue(); };
 
 // ---------- frame extraction -> array of {canvas, t} sampled at fps ----------
 async function extractFrames(f, fps, maxDur, size) {
@@ -472,7 +703,7 @@ async function build(o) {
   const layers = [];
   let slot = 0;
   for (let k = 0; k < frames.length; k++) {
-    status(T('trace', k+1, frames.length));
+    status(T('trace', k+1, frames.length)); subProg((k + 1) / frames.length);
     await new Promise(r => setTimeout(r));
     const ip = Math.round(slot * step), op = Math.round((slot + frames[k].n) * step);
     slot += frames[k].n;
@@ -523,7 +754,7 @@ async function convertOne() {
 }
 
 // re-convert everything with the current settings
-$('go').onclick = () => { queue.forEach(q => { q.state = 'wait'; }); renderQueue(); runQueue(); };
+$('go').onclick = () => { if (busy) return; queue.forEach(q => { q.state = 'wait'; }); renderQueue(); runQueue(); };
 
 function saveBlob(blob, name) {
   const a = document.createElement('a');
@@ -569,8 +800,11 @@ async function makeZip(entries) { // [{name, blob}]
 $('zip').onclick = async () => {
   const done = queue.filter(q => q.state === 'done');
   const names = uniqueNames(done);
-  saveBlob(await makeZip(done.map((q, i) => ({ name: names[i], blob: q.blob }))), 'stickers.zip');
+  saveBlob(await makeZip(done.map((q, i) => ({ name: names[i], blob: q.blob }))), 'stickers.zip'); toast(T('zipped'));
 };
+
+applyLang(LANG);
+select(-1);
 </script>
 </body>
 </html>
