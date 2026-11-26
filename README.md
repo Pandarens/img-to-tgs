@@ -2,7 +2,7 @@
 
 **[Открыть конвертер](https://pandarens.github.io/img-to-tgs/)** · [English](#english)
 
-Статическая страница: превращает GIF, MP4, WEBM в стикеры Telegram. Всё работает в браузере, файлы никуда не загружаются. Интерфейс на русском и английском.
+Статическая страница: превращает GIF, MP4, WEBM в стикеры Telegram. Всё работает в браузере, файлы никуда не загружаются. Интерфейс на русском и английском. Можно закинуть сразу много файлов: они конвертируются по очереди, каждый скачивается отдельно или все разом одним ZIP.
 
 Два режима:
 - **TGS**: анимированный (Lottie) стикер. Только векторы, ≤ 64 КБ, поэтому кадры векторизуются и выглядят стилизованно.
@@ -30,7 +30,7 @@ python -m http.server 5173
 
 **[Open the converter](https://pandarens.github.io/img-to-tgs/)** · [Русский](#gif--видео--стикер-telegram)
 
-Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device. The interface is in Russian and English.
+Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device. The interface is in Russian and English. Drop many files at once: they are converted one by one, download each separately or all of them as one ZIP.
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.
