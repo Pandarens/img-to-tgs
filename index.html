@@ -366,7 +366,7 @@ const f64 = x => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat6
 function muxWebm(w, h, durMs, frames) { // frames: [{tsMs, key, data, alpha}]
   const header = el(0x1A45DFA3, [el(0x4286, 1), el(0x42F7, 1), el(0x42F2, 4), el(0x42F3, 8), el(0x4282, 'webm'), el(0x4287, 4), el(0x4285, 2)]);
   const info = el(0x1549A966, [el(0x2AD7B1, 1000000), el(0x4489, f64(durMs)), el(0x4D80, 'img-to-tgs'), el(0x5741, 'img-to-tgs')]);
-  const tracks = el(0x1654AE6B, [el(0xAE, [el(0xD7, 1), el(0x73C5, 1), el(0x83, 1), el(0x86, 'V_VP9'),
+  const tracks = el(0x1654AE6B, [el(0xAE, [el(0xD7, 1), el(0x73C5, 1), el(0x83, 1), el(0x86, 'V_VP9'), el(0x23E383, Math.round(1e9 / 30)),
     el(0xE0, [el(0xB0, w), el(0xBA, h), el(0x53C0, 1)])])]);
   const blocks = [el(0xE7, 0)];
   let prevTs = 0;
@@ -400,14 +400,18 @@ async function toWebm(o) {
   const { frames, w: fw, h: fh } = await extractFrames(file, fps, o.dur, 512);
   const w = fw & ~1, h = fh & ~1;
   let t = 0;
-  const list = frames.map(fr => { const x = { c: fr.c, tsMs: Math.round(t * 1000 / fps), us: Math.round(t * 1e6 / fps) }; t += fr.n; return x; });
+  // constant frame rate: Telegram mobile plays video stickers at a fixed fps and ignores timestamps,
+  // so held GIF frames are repeated instead of stretched (repeats cost almost nothing in VP9)
+  const list = [];
+  for (const fr of frames) for (let r = 0; r < fr.n; r++) { list.push({ c: fr.c, tsMs: Math.round(t * 1000 / fps), us: Math.round(t * 1e6 / fps) }); t++; }
   const durMs = Math.round(t * 1000 / fps);
   // alpha planes (Y = alpha, U = V = 128), computed once
-  const alphaBufs = list.map(fr => {
+  const alphaCache = new Map();
+  const alphaBufs = list.map(fr => { if (alphaCache.has(fr.c)) return alphaCache.get(fr.c);
     const d = fr.c.getContext('2d').getImageData(0, 0, w, h).data;
     const buf = new Uint8Array(w * h * 3 / 2).fill(128);
     for (let i = 0; i < w * h; i++) buf[i] = d[i * 4 + 3];
-    return buf;
+    alphaCache.set(fr.c, buf); return buf;
   });
   const LIMIT = 256 * 1024;
   let kbps = Math.floor(LIMIT * 8 / (durMs / 1000) / 1000 * 0.8), blob;
@@ -573,7 +577,7 @@ async function extractFrames(f, fps, maxDur, size) {
   const src = []; let t = 0;
   for (let i = 0; i < count && t < maxDur; i++) {
     const { image } = await dec.decode({ frameIndex: i });
-    const d = (image.duration || 100000) / 1e6;
+    const d = (image.duration > 10000 ? image.duration : 100000) / 1e6; // like browsers: 0–10 ms delay means 100 ms
     src.push({ img: image, t0: t }); t += d;
   }
   const total = Math.min(t, maxDur);
