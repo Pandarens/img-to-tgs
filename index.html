@@ -134,6 +134,26 @@
   footer { text-align:center; color:var(--mut); font-size:12.5px; margin-top:10px; }
   .ok { color:var(--ok); } .bad { color:var(--bad); }
 
+  /* editor */
+  dialog#ed { border:1px solid var(--line); border-radius:22px; padding:0; background:var(--bg2); color:var(--fg); box-shadow:0 30px 80px -20px rgba(0,0,0,.7); width:min(520px, calc(100vw - 24px)); }
+  dialog#ed::backdrop { background:rgba(8,6,16,.6); backdrop-filter:blur(4px); }
+  .ed-in { padding:18px; }
+  .ed-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+  .ed-head b { font-size:17px; } .ed-head small { color:var(--mut); display:block; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:340px; }
+  #edStage { position:relative; width:min(100%, calc(100vh - 330px)); margin:0 auto; aspect-ratio:1; border-radius:14px; overflow:hidden; touch-action:none; user-select:none;
+    background: repeating-conic-gradient(rgba(128,128,128,.16) 0 25%, transparent 0 50%) 0 0/18px 18px; }
+  #edStage > img, #edStage > video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+  #edBox { position:absolute; border:2px solid #fff; border-radius:6px; box-shadow:0 0 0 9999px rgba(10,6,20,.55); cursor:move; display:none; }
+  #edBox::before, #edBox::after { content:""; position:absolute; inset:33.3% 0; border-top:1px solid rgba(255,255,255,.45); border-bottom:1px solid rgba(255,255,255,.45); pointer-events:none; }
+  #edBox::after { inset:0 33.3%; border:0; border-left:1px solid rgba(255,255,255,.45); border-right:1px solid rgba(255,255,255,.45); }
+  #edFrame { position:absolute; inset:0; border:2px dashed rgba(255,61,154,.8); border-radius:14px; pointer-events:none; display:none; }
+  .ed-row { margin-top:14px; }
+  .ed-row label { display:block; font-size:13px; color:var(--mut); } .ed-row label b { color:var(--fg); }
+  .ed-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+  .ed-actions .btn.ghost:first-child { margin-right:auto; }
+  .seg.wide { display:flex; } .seg.wide button { flex:1; }
+  .qi .tag { font-size:11px; padding:1px 6px; border-radius:6px; background:var(--grad); color:#fff; margin-left:6px; vertical-align:1px; }
+
   /* toast */
   #toast { position:fixed; left:50%; bottom:22px; transform:translate(-50%,30px); opacity:0; background:var(--bg2); border:1px solid var(--line); color:var(--fg);
     padding:10px 16px; border-radius:12px; box-shadow:var(--shadow); font-size:14px; transition:.25s; pointer-events:none; z-index:10; }
@@ -225,7 +245,7 @@
         <div class="tgwrap" title="Telegram"><div id="tgout"></div></div>
         <div class="result-meta">
           <span class="pill" id="pill" style="visibility:hidden"></span>
-          <button class="btn" id="dl" disabled>⬇ <span data-i="dl"></span></button>
+          <span style="display:flex;gap:8px"><button class="btn ghost" id="edBtn" disabled>✂️ <span data-i="edit"></span></button><button class="btn" id="dl" disabled>⬇ <span data-i="dl"></span></button></span>
         </div>
       </section>
 
@@ -242,6 +262,22 @@
   </div>
   <footer><span data-i="foot"></span> · <a href="https://github.com/Pandarens/img-to-tgs" target="_blank" rel="noopener">GitHub</a></footer>
 </main>
+<dialog id="ed">
+  <div class="ed-in">
+    <div class="ed-head"><div><b>✂️ <span data-i="edTitle"></span></b><small id="edName"></small></div><button class="icon-btn" id="edX">✕</button></div>
+    <div id="edStage"><div id="edFrame"></div><div id="edBox"></div></div>
+    <div class="ed-row"><div class="seg wide" id="edMode">
+      <button data-m="orig"><span data-i="mOrig"></span></button><button data-m="crop"><span data-i="mCrop"></span></button><button data-m="fit"><span data-i="mFit"></span></button>
+    </div></div>
+    <div class="ed-row" id="edZoomRow"><label><span data-i="zoom"></span>: <b id="edZoomV"></b><input id="edZoom" type="range" min="0.2" max="1" step="0.01"></label></div>
+    <div class="ed-row"><label><span data-i="speed"></span>: <b id="edSpeedV"></b><input id="edSpeed" type="range" min="0.25" max="3" step="0.25"></label></div>
+    <div class="ed-actions">
+      <button class="btn ghost" id="edReset">↺ <span data-i="reset"></span></button>
+      <button class="btn ghost" id="edCancel"><span data-i="cancel"></span></button>
+      <button class="btn" id="edApply">✓ <span data-i="apply"></span></button>
+    </div>
+  </div>
+</dialog>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
@@ -269,6 +305,7 @@ const I18N = {
     done: (kb, ok, lim) => `Готово: ${kb} КБ ${ok ? '✓' : `— больше ${lim} КБ, Telegram не примет`}`, err: 'Ошибка: ',
     files: 'Файлы', zip: 'Скачать все (ZIP)', kb: 'КБ', working: 'конвертирую…', waiting: 'в очереди', batchDone: (n, t) => `Готово: ${n} из ${t}`,
     shrink: (kb, o) => `${kb} КБ — ужимаю (fps ${o.fps}, цветов ${o.colors}, ${o.res}px)…`,
+    edit: 'Редактор', edTitle: 'Редактор', mOrig: 'Оригинал', mCrop: 'Обрезать в квадрат', mFit: 'Вписать в квадрат', zoom: 'Масштаб', speed: 'Скорость', reset: 'Сбросить', cancel: 'Отмена', apply: 'Применить', edited: 'изменён',
     fits: lim => `✓ влезает в ${lim} КБ`, over: lim => `⚠ больше ${lim} КБ`, added: n => `Добавлено файлов: ${n}`, zipped: 'Архив сохранён 📦', unsupported: 'Этот тип файла не поддерживается',
   },
   en: {
@@ -291,6 +328,7 @@ const I18N = {
     done: (kb, ok, lim) => `Done: ${kb} KB ${ok ? '✓' : `— over ${lim} KB, Telegram will reject it`}`, err: 'Error: ',
     files: 'Files', zip: 'Download all (ZIP)', kb: 'KB', working: 'converting…', waiting: 'queued', batchDone: (n, t) => `Done: ${n} of ${t}`,
     shrink: (kb, o) => `${kb} KB — shrinking (fps ${o.fps}, colors ${o.colors}, ${o.res}px)…`,
+    edit: 'Editor', edTitle: 'Editor', mOrig: 'Original', mCrop: 'Crop to square', mFit: 'Fit into square', zoom: 'Zoom', speed: 'Speed', reset: 'Reset', cancel: 'Cancel', apply: 'Apply', edited: 'edited',
     fits: lim => `✓ fits ${lim} KB`, over: lim => `⚠ over ${lim} KB`, added: n => `Files added: ${n}`, zipped: 'Archive saved 📦', unsupported: 'This file type is not supported',
   },
 };
@@ -469,6 +507,10 @@ function renderQueue() {
     row.innerHTML = `<div class="th">${media(q.url, q.file.type.startsWith('video'), 'cover')}</div>
       <div class="meta"><div class="n"></div><div class="s ${cls}">${q.state === 'work' ? '<i class="spin"></i>' : ''}<span></span></div></div>`;
     row.querySelector('.n').textContent = q.file.name;
+    if (q.edit && (q.edit.mode !== 'orig' || q.edit.speed !== 1)) row.querySelector('.n').insertAdjacentHTML('beforeend', `<span class="tag">✂ ${T('edited')}</span>`);
+    const eb = document.createElement('button'); eb.textContent = '✂'; eb.title = T('edit');
+    eb.onclick = ev => { ev.stopPropagation(); if (q.state !== 'work') openEditor(i); };
+    row.append(eb);
     row.querySelector('.s span').textContent = st;
     if (q.state === 'done') {
       const b = document.createElement('button'); b.textContent = '⬇'; b.title = T('dl');
@@ -496,6 +538,7 @@ function select(i) {
   sel = i;
   clearOut();
   const q = queue[i];
+  $('edBtn').disabled = !q;
   if (!q) { file = null; $('src').innerHTML = `<span>${T('empty')}</span>`; $('dl').disabled = true; status(''); return; }
   file = q.file;
   $('src').innerHTML = media(q.url, q.file.type.startsWith('video'));
@@ -531,7 +574,7 @@ async function runQueue() {
     const finished = queue.filter(x => x.state === 'done' || x.state === 'err').length;
     progSpan = 1 / (todo + finished); progBase = finished * progSpan; setProg(progBase);
     q.state = 'work'; q.outUrl = null; renderQueue();
-    file = q.file;
+    file = q.file; edit = q.edit || DEFAULT_EDIT;
     try {
       Object.assign(q, await convertOne(), { state: 'done' });
     } catch (e) { console.error(e); q.state = 'err'; q.error = e.message; }
@@ -545,29 +588,105 @@ async function runQueue() {
   else if (queue[sel]) showResult(queue[sel]);
 }
 
+
+// ---------- light editor: crop / fit to square, speed ----------
+let edI = -1, ed = null, edDims = null;
+function edLayout() { // displayed media rect inside the square stage
+  const S = $('edStage').clientWidth, [sw, sh] = edDims, k = Math.min(S / sw, S / sh);
+  return { S, k, ox: (S - sw * k) / 2, oy: (S - sh * k) / 2, sw, sh };
+}
+function edDraw() {
+  document.querySelectorAll('#edMode button').forEach(b => b.classList.toggle('on', b.dataset.m === ed.mode));
+  $('edZoomRow').style.display = ed.mode === 'crop' ? '' : 'none';
+  $('edZoom').value = ed.zoom; $('edZoomV').textContent = Math.round(ed.zoom * 100) + '%';
+  $('edSpeed').value = ed.speed; $('edSpeedV').textContent = ed.speed + '×';
+  $('edFrame').style.display = ed.mode === 'fit' ? 'block' : 'none';
+  const box = $('edBox');
+  if (ed.mode !== 'crop' || !edDims) { box.style.display = 'none'; return; }
+  const L = edLayout(), r = cropRect(L.sw, L.sh, ed);
+  Object.assign(box.style, { display: 'block', left: L.ox + r.sx * L.k + 'px', top: L.oy + r.sy * L.k + 'px', width: r.side * L.k + 'px', height: r.side * L.k + 'px' });
+}
+function openEditor(i) {
+  const q = queue[i]; if (!q) return;
+  edI = i; ed = { ...DEFAULT_EDIT, ...(q.edit || {}) }; edDims = null;
+  $('edName').textContent = q.file.name;
+  $('edStage').querySelectorAll('img,video').forEach(e => e.remove());
+  const isV = q.file.type.startsWith('video');
+  const m = document.createElement(isV ? 'video' : 'img');
+  m.src = q.url;
+  if (isV) { m.muted = true; m.loop = true; m.autoplay = true; m.playsInline = true; }
+  const ready = () => { edDims = isV ? [m.videoWidth, m.videoHeight] : [m.naturalWidth, m.naturalHeight]; edDraw(); };
+  if (isV) m.onloadedmetadata = ready; else m.onload = ready;
+  $('edStage').prepend(m);
+  $('ed').showModal(); edDraw();
+}
+document.querySelectorAll('#edMode button').forEach(b => b.onclick = () => { ed.mode = b.dataset.m; edDraw(); });
+$('edZoom').oninput = () => { ed.zoom = +$('edZoom').value; edDraw(); };
+$('edSpeed').oninput = () => { ed.speed = +$('edSpeed').value; edDraw(); };
+$('edReset').onclick = () => { ed = { ...DEFAULT_EDIT }; edDraw(); };
+$('edCancel').onclick = $('edX').onclick = () => $('ed').close();
+$('edApply').onclick = () => {
+  const q = queue[edI]; $('ed').close();
+  if (!q) return;
+  q.edit = { ...ed }; q.state = 'wait'; select(edI); renderQueue(); runQueue();
+};
+$('edBtn').onclick = () => openEditor(sel);
+// drag the crop box (mouse + touch); wheel / pinch-free zoom with the slider
+let drag = null;
+$('edBox').onpointerdown = e => { e.preventDefault(); $('edBox').setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, cx: ed.cx, cy: ed.cy }; };
+$('edBox').onpointermove = e => {
+  if (!drag) return;
+  const L = edLayout(), r = cropRect(L.sw, L.sh, ed), half = r.side / 2;
+  const nx = drag.cx + (e.clientX - drag.x) / L.k / L.sw, ny = drag.cy + (e.clientY - drag.y) / L.k / L.sh;
+  ed.cx = Math.min(Math.max(nx, half / L.sw), 1 - half / L.sw);
+  ed.cy = Math.min(Math.max(ny, half / L.sh), 1 - half / L.sh);
+  edDraw();
+};
+$('edBox').onpointerup = $('edBox').onpointercancel = () => drag = null;
+$('edStage').onwheel = e => { if (ed?.mode !== 'crop') return; e.preventDefault(); ed.zoom = Math.min(1, Math.max(.2, ed.zoom - e.deltaY * .001)); edDraw(); };
+addEventListener('resize', () => { if ($('ed').open) edDraw(); });
+
 $('clear').onclick = () => { if (busy) return; queue = []; sel = -1; select(-1); renderQueue(); };
 
 // ---------- frame extraction -> array of {canvas, t} sampled at fps ----------
+// edit = { mode: 'orig' | 'crop' | 'fit', cx, cy (crop centre 0..1), zoom (crop side / short side), speed }
+const DEFAULT_EDIT = { mode: 'orig', cx: .5, cy: .5, zoom: 1, speed: 1 };
+let edit = DEFAULT_EDIT; // edit settings of the file being converted
+function cropRect(sw, sh, e) {
+  const side = Math.min(sw, sh) * e.zoom;
+  const sx = Math.min(Math.max(e.cx * sw - side / 2, 0), sw - side);
+  const sy = Math.min(Math.max(e.cy * sh - side / 2, 0), sh - side);
+  return { sx, sy, side };
+}
+function layout(sw, sh, size, e) {
+  if (e.mode === 'crop') {
+    const { sx, sy, side } = cropRect(sw, sh, e);
+    return { w: size, h: size, draw: (ctx, src) => ctx.drawImage(src, sx, sy, side, side, 0, 0, size, size) };
+  }
+  const s = size / Math.max(sw, sh), dw = Math.max(1, Math.round(sw * s)), dh = Math.max(1, Math.round(sh * s));
+  if (e.mode === 'fit') {
+    return { w: size, h: size, draw: (ctx, src) => ctx.drawImage(src, (size - dw) / 2, (size - dh) / 2, dw, dh) };
+  }
+  return { w: dw, h: dh, draw: (ctx, src) => ctx.drawImage(src, 0, 0, dw, dh) };
+}
+
 async function extractFrames(f, fps, maxDur, size) {
-  const out = [];
-  const mk = () => { const c = document.createElement('canvas'); return c; };
-  const fit = (w, h) => { const s = size / Math.max(w, h); return [Math.max(1, Math.round(w*s)), Math.max(1, Math.round(h*s))]; };
+  const out = [], sp = edit.speed || 1;
+  const mk = (L, src) => { const c = document.createElement('canvas'); c.width = L.w; c.height = L.h; L.draw(c.getContext('2d', { willReadFrequently: true }), src); return c; };
 
   if (f.type.startsWith('video')) {
     const v = document.createElement('video');
     v.muted = true; v.playsInline = true; v.src = URL.createObjectURL(f);
     await new Promise((ok, err) => { v.onloadeddata = ok; v.onerror = () => err(new Error(T('badVideo'))); });
-    const dur = Math.min(v.duration || maxDur, maxDur);
-    const [w, h] = fit(v.videoWidth, v.videoHeight);
+    const dur = Math.min((v.duration || maxDur * sp) / sp, maxDur);
+    const L = layout(v.videoWidth, v.videoHeight, size, edit);
     const n = Math.max(1, Math.round(dur * fps));
     for (let i = 0; i < n; i++) {
-      v.currentTime = Math.min(i / fps, v.duration - 0.001);
+      v.currentTime = Math.min(i / fps * sp, v.duration - 0.001);
       await new Promise(ok => v.onseeked = ok);
-      const c = mk(); c.width = w; c.height = h;
-      c.getContext('2d').drawImage(v, 0, 0, w, h);
-      out.push({ c, n: 1 });
+      out.push({ c: mk(L, v), n: 1 });
     }
-    return { frames: out, w, h, dur: n / fps };
+    return { frames: out, w: L.w, h: L.h, dur: n / fps };
   }
 
   if (!('ImageDecoder' in window)) throw new Error(T('noID'));
@@ -575,26 +694,24 @@ async function extractFrames(f, fps, maxDur, size) {
   await dec.tracks.ready;
   const count = dec.tracks.selectedTrack.frameCount;
   const src = []; let t = 0;
-  for (let i = 0; i < count && t < maxDur; i++) {
+  for (let i = 0; i < count && t < maxDur * sp; i++) {
     const { image } = await dec.decode({ frameIndex: i });
     const d = (image.duration > 10000 ? image.duration : 100000) / 1e6; // like browsers: 0–10 ms delay means 100 ms
     src.push({ img: image, t0: t }); t += d;
   }
-  const total = Math.min(t, maxDur);
-  const [w, h] = fit(src[0].img.displayWidth, src[0].img.displayHeight);
+  const total = Math.min(t / sp, maxDur);
+  const L = layout(src[0].img.displayWidth, src[0].img.displayHeight, size, edit);
   const n = Math.max(1, Math.round(total * fps));
   let lastK = -1;
   for (let i = 0; i < n; i++) {
-    const tt = i / fps;
+    const tt = i / fps * sp;
     let k = 0; while (k + 1 < src.length && src[k + 1].t0 <= tt) k++;
     if (k === lastK) { out[out.length - 1].n++; continue; } // same GIF frame -> just hold it longer
     lastK = k;
-    const c = mk(); c.width = w; c.height = h;
-    c.getContext('2d').drawImage(src[k].img, 0, 0, w, h);
-    out.push({ c, n: 1 });
+    out.push({ c: mk(L, src[k].img), n: 1 });
   }
   src.forEach(s => s.img.close());
-  return { frames: out, w, h, dur: n / fps };
+  return { frames: out, w: L.w, h: L.h, dur: n / fps };
 }
 
 // ---------- vectorize a canvas -> lottie shape groups ----------

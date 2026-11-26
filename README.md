@@ -6,6 +6,8 @@
 
 Удобства: вставка из буфера (Ctrl+V), пресеты качества, превью на фоне чата Telegram, светлая и тёмная тема, настройки запоминаются, инструкция как добавить стикер через @Stickers.
 
+Редактор ✂️: обрезать картинку в квадрат (рамку можно двигать и масштабировать), вписать в квадрат с прозрачными полями, изменить скорость анимации. Настройки свои для каждого файла.
+
 Два режима:
 - **TGS**: анимированный (Lottie) стикер. Только векторы, ≤ 64 КБ, поэтому кадры векторизуются и выглядят стилизованно.
 - **WEBM**: видеостикер. VP9 с прозрачностью, 512 px, ≤ 3 с, ≤ 256 КБ. Выглядит как исходник.
@@ -35,6 +37,8 @@ python -m http.server 5173
 Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device. The interface is in Russian and English. Drop many files at once: they are converted one by one, download each separately or all of them as one ZIP.
 
 Extras: paste from clipboard (Ctrl+V), quality presets, preview on a Telegram-chat background, light and dark theme, settings are remembered, a how-to for adding stickers via @Stickers.
+
+Editor ✂️: crop to a square (drag and zoom the frame), fit into a square with transparent padding, change animation speed. Settings are per file.
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.
