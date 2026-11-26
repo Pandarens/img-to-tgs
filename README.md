@@ -6,7 +6,7 @@
 
 Удобства: вставка из буфера (Ctrl+V), пресеты качества, превью на фоне чата Telegram, светлая и тёмная тема, настройки запоминаются, инструкция как добавить стикер через @Stickers.
 
-Редактор ✂️: обрезать картинку в квадрат (рамку можно двигать и масштабировать), вписать в квадрат с прозрачными полями, изменить скорость анимации. Настройки свои для каждого файла.
+Редактор ✂️: обрезать картинку в квадрат (рамку можно двигать, тянуть за уголки и делать больше картинки — лишнее станет прозрачным), вписать в квадрат с прозрачными полями, изменить скорость анимации. Настройки свои для каждого файла.
 
 Два режима:
 - **TGS**: анимированный (Lottie) стикер. Только векторы, ≤ 64 КБ, поэтому кадры векторизуются и выглядят стилизованно.
@@ -38,7 +38,7 @@ Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything 
 
 Extras: paste from clipboard (Ctrl+V), quality presets, preview on a Telegram-chat background, light and dark theme, settings are remembered, a how-to for adding stickers via @Stickers.
 
-Editor ✂️: crop to a square (drag and zoom the frame), fit into a square with transparent padding, change animation speed. Settings are per file.
+Editor ✂️: crop to a square (drag the frame, resize it by the corners, even beyond the picture — the extra area becomes transparent), fit into a square with transparent padding, change animation speed. Settings are per file.
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.

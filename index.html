@@ -142,10 +142,14 @@
   .ed-head b { font-size:17px; } .ed-head small { color:var(--mut); display:block; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:340px; }
   #edStage { position:relative; width:min(100%, calc(100vh - 330px)); margin:0 auto; aspect-ratio:1; border-radius:14px; overflow:hidden; touch-action:none; user-select:none;
     background: repeating-conic-gradient(rgba(128,128,128,.16) 0 25%, transparent 0 50%) 0 0/18px 18px; }
-  #edStage > img, #edStage > video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+  #edStage > img, #edStage > video { position:absolute; inset:14px; width:calc(100% - 28px) !important; height:calc(100% - 28px) !important; width:100%; height:100%; object-fit:contain; pointer-events:none; }
   #edBox { position:absolute; border:2px solid #fff; border-radius:6px; box-shadow:0 0 0 9999px rgba(10,6,20,.55); cursor:move; display:none; }
   #edBox::before, #edBox::after { content:""; position:absolute; inset:33.3% 0; border-top:1px solid rgba(255,255,255,.45); border-bottom:1px solid rgba(255,255,255,.45); pointer-events:none; }
   #edBox::after { inset:0 33.3%; border:0; border-left:1px solid rgba(255,255,255,.45); border-right:1px solid rgba(255,255,255,.45); }
+  #edBox .hd { position:absolute; width:22px; height:22px; z-index:2; touch-action:none; }
+  #edBox .hd::after { content:""; position:absolute; inset:5px; background:#fff; border-radius:4px; box-shadow:0 0 0 2px var(--pink), 0 2px 8px rgba(0,0,0,.5); }
+  #edBox .hd[data-c=nw] { left:-12px; top:-12px; cursor:nwse-resize; } #edBox .hd[data-c=se] { right:-12px; bottom:-12px; cursor:nwse-resize; }
+  #edBox .hd[data-c=ne] { right:-12px; top:-12px; cursor:nesw-resize; } #edBox .hd[data-c=sw] { left:-12px; bottom:-12px; cursor:nesw-resize; }
   #edFrame { position:absolute; inset:0; border:2px dashed rgba(255,61,154,.8); border-radius:14px; pointer-events:none; display:none; }
   .ed-row { margin-top:14px; }
   .ed-row label { display:block; font-size:13px; color:var(--mut); } .ed-row label b { color:var(--fg); }
@@ -265,11 +269,11 @@
 <dialog id="ed">
   <div class="ed-in">
     <div class="ed-head"><div><b>✂️ <span data-i="edTitle"></span></b><small id="edName"></small></div><button class="icon-btn" id="edX">✕</button></div>
-    <div id="edStage"><div id="edFrame"></div><div id="edBox"></div></div>
+    <div id="edStage"><div id="edFrame"></div><div id="edBox"><i class="hd" data-c="nw"></i><i class="hd" data-c="ne"></i><i class="hd" data-c="sw"></i><i class="hd" data-c="se"></i></div></div>
     <div class="ed-row"><div class="seg wide" id="edMode">
       <button data-m="orig"><span data-i="mOrig"></span></button><button data-m="crop"><span data-i="mCrop"></span></button><button data-m="fit"><span data-i="mFit"></span></button>
     </div></div>
-    <div class="ed-row" id="edZoomRow"><label><span data-i="zoom"></span>: <b id="edZoomV"></b><input id="edZoom" type="range" min="0.2" max="1" step="0.01"></label></div>
+    <div class="ed-row" id="edZoomRow"><label><span data-i="zoom"></span>: <b id="edZoomV"></b><input id="edZoom" type="range" min="0.1" max="1" step="0.005"></label></div>
     <div class="ed-row"><label><span data-i="speed"></span>: <b id="edSpeedV"></b><input id="edSpeed" type="range" min="0.25" max="3" step="0.25"></label></div>
     <div class="ed-actions">
       <button class="btn ghost" id="edReset">↺ <span data-i="reset"></span></button>
@@ -592,13 +596,14 @@ async function runQueue() {
 // ---------- light editor: crop / fit to square, speed ----------
 let edI = -1, ed = null, edDims = null;
 function edLayout() { // displayed media rect inside the square stage
-  const S = $('edStage').clientWidth, [sw, sh] = edDims, k = Math.min(S / sw, S / sh);
-  return { S, k, ox: (S - sw * k) / 2, oy: (S - sh * k) / 2, sw, sh };
+  const P = 14, S = $('edStage').clientWidth - 2 * P, [sw, sh] = edDims, k = Math.min(S / sw, S / sh);
+  return { S, k, ox: P + (S - sw * k) / 2, oy: P + (S - sh * k) / 2, sw, sh };
 }
 function edDraw() {
   document.querySelectorAll('#edMode button').forEach(b => b.classList.toggle('on', b.dataset.m === ed.mode));
   $('edZoomRow').style.display = ed.mode === 'crop' ? '' : 'none';
-  $('edZoom').value = ed.zoom; $('edZoomV').textContent = Math.round(ed.zoom * 100) + '%';
+  if (edDims) { $('edZoom').max = zoomMax(...edDims).toFixed(3); const r = cropRect(...edDims, ed); $('edZoomV').textContent = `${Math.round(r.side)}×${Math.round(r.side)} px → 512×512`; }
+  $('edZoom').value = ed.zoom;
   $('edSpeed').value = ed.speed; $('edSpeedV').textContent = ed.speed + '×';
   $('edFrame').style.display = ed.mode === 'fit' ? 'block' : 'none';
   const box = $('edBox');
@@ -633,17 +638,31 @@ $('edApply').onclick = () => {
 $('edBtn').onclick = () => openEditor(sel);
 // drag the crop box (mouse + touch); wheel / pinch-free zoom with the slider
 let drag = null;
-$('edBox').onpointerdown = e => { e.preventDefault(); $('edBox').setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, cx: ed.cx, cy: ed.cy }; };
+$('edBox').onpointerdown = e => {
+  e.preventDefault(); $('edBox').setPointerCapture(e.pointerId);
+  const L = edLayout(), r = cropRect(L.sw, L.sh, ed), corner = e.target.dataset.c;
+  drag = { x: e.clientX, y: e.clientY, r, corner };
+  if (corner) { // fixed point = opposite corner (source pixels)
+    drag.fx = corner.includes('w') ? r.sx + r.side : r.sx;
+    drag.fy = corner.includes('n') ? r.sy + r.side : r.sy;
+  }
+};
 $('edBox').onpointermove = e => {
   if (!drag) return;
-  const L = edLayout(), r = cropRect(L.sw, L.sh, ed), half = r.side / 2;
-  const nx = drag.cx + (e.clientX - drag.x) / L.k / L.sw, ny = drag.cy + (e.clientY - drag.y) / L.k / L.sh;
-  ed.cx = Math.min(Math.max(nx, half / L.sw), 1 - half / L.sw);
-  ed.cy = Math.min(Math.max(ny, half / L.sh), 1 - half / L.sh);
+  const L = edLayout(), dx = (e.clientX - drag.x) / L.k, dy = (e.clientY - drag.y) / L.k;
+  if (!drag.corner) { setCrop(L.sw, L.sh, drag.r.sx + dx, drag.r.sy + dy, drag.r.side); edDraw(); return; }
+  const c = drag.corner, r = drag.r;
+  const px = (c.includes('w') ? r.sx : r.sx + r.side) + dx, py = (c.includes('n') ? r.sy : r.sy + r.side) + dy;
+  const maxSide = Math.max(L.sw, L.sh), minSide = Math.min(L.sw, L.sh) * 0.1;
+  const side = Math.min(maxSide, Math.max(minSide, Math.abs(px - drag.fx), Math.abs(py - drag.fy)));
+  setCrop(L.sw, L.sh, c.includes('w') ? drag.fx - side : drag.fx, c.includes('n') ? drag.fy - side : drag.fy, side);
   edDraw();
 };
 $('edBox').onpointerup = $('edBox').onpointercancel = () => drag = null;
-$('edStage').onwheel = e => { if (ed?.mode !== 'crop') return; e.preventDefault(); ed.zoom = Math.min(1, Math.max(.2, ed.zoom - e.deltaY * .001)); edDraw(); };
+$('edStage').onwheel = e => {
+  if (ed?.mode !== 'crop' || !edDims) return; e.preventDefault();
+  ed.zoom = Math.min(zoomMax(...edDims), Math.max(.1, ed.zoom * (1 - e.deltaY * .001))); edDraw();
+};
 addEventListener('resize', () => { if ($('ed').open) edDraw(); });
 
 $('clear').onclick = () => { if (busy) return; queue = []; sel = -1; select(-1); renderQueue(); };
@@ -652,16 +671,22 @@ $('clear').onclick = () => { if (busy) return; queue = []; sel = -1; select(-1);
 // edit = { mode: 'orig' | 'crop' | 'fit', cx, cy (crop centre 0..1), zoom (crop side / short side), speed }
 const DEFAULT_EDIT = { mode: 'orig', cx: .5, cy: .5, zoom: 1, speed: 1 };
 let edit = DEFAULT_EDIT; // edit settings of the file being converted
+const zoomMax = (sw, sh) => Math.max(sw, sh) / Math.min(sw, sh);
 function cropRect(sw, sh, e) {
-  const side = Math.min(sw, sh) * e.zoom;
-  const sx = Math.min(Math.max(e.cx * sw - side / 2, 0), sw - side);
-  const sy = Math.min(Math.max(e.cy * sh - side / 2, 0), sh - side);
-  return { sx, sy, side };
+  const side = Math.min(sw, sh) * Math.min(e.zoom, zoomMax(sw, sh));
+  // square smaller than the image on an axis -> stays inside it; bigger -> image stays inside the square
+  const cl = (v, len) => Math.min(Math.max(v, Math.min(0, len - side)), Math.max(0, len - side));
+  return { sx: cl(e.cx * sw - side / 2, sw), sy: cl(e.cy * sh - side / 2, sh), side };
+}
+function setCrop(sw, sh, sx, sy, side) { // store a square given in source pixels
+  ed.zoom = side / Math.min(sw, sh); ed.cx = (sx + side / 2) / sw; ed.cy = (sy + side / 2) / sh;
+  const r = cropRect(sw, sh, ed); ed.cx = (r.sx + r.side / 2) / sw; ed.cy = (r.sy + r.side / 2) / sh;
 }
 function layout(sw, sh, size, e) {
   if (e.mode === 'crop') {
     const { sx, sy, side } = cropRect(sw, sh, e);
-    return { w: size, h: size, draw: (ctx, src) => ctx.drawImage(src, sx, sy, side, side, 0, 0, size, size) };
+    const k = size / side;
+    return { w: size, h: size, draw: (ctx, src) => ctx.drawImage(src, -sx * k, -sy * k, sw * k, sh * k) };
   }
   const s = size / Math.max(sw, sh), dw = Math.max(1, Math.round(sw * s)), dh = Math.max(1, Math.round(sh * s));
   if (e.mode === 'fit') {
