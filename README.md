@@ -1,6 +1,36 @@
-# GIF / Video → Telegram sticker
+# GIF / видео → стикер Telegram
 
-Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device.
+**[Открыть конвертер](https://pandarens.github.io/img-to-tgs/)** · [English](#english)
+
+Статическая страница: превращает GIF, MP4, WEBM в стикеры Telegram. Всё работает в браузере, файлы никуда не загружаются. Интерфейс на русском и английском.
+
+Два режима:
+- **TGS**: анимированный (Lottie) стикер. Только векторы, ≤ 64 КБ, поэтому кадры векторизуются и выглядят стилизованно.
+- **WEBM**: видеостикер. VP9 с прозрачностью, 512 px, ≤ 3 с, ≤ 256 КБ. Выглядит как исходник.
+
+## Как это работает
+- **TGS:** кадры декодируются (`ImageDecoder` / `<video>`), векторизуются imagetracerjs с общей палитрой, складываются в слои Lottie (512×512, 60 fps) и сжимаются gzip. «Автоматически ужать до 64 КБ» снижает детализацию, разрешение и FPS, пока файл не влезет.
+- **WEBM:** кадры кодируются WebCodecs в VP9; прозрачность кодируется вторым VP9-потоком и записывается в BlockAdditions (AlphaMode). Битрейт снижается, пока файл не влезет в 256 КБ.
+
+Нужен свежий Chrome, Edge или Firefox.
+
+## Запуск локально
+```
+python -m http.server 5173
+```
+Открыть http://localhost:5173
+
+## Деплой
+Статический сайт без сборки: GitHub Pages (Settings → Pages → ветка `main`, корень) или `npx vercel`.
+
+---
+
+<a id="english"></a>
+# GIF / video → Telegram sticker
+
+**[Open the converter](https://pandarens.github.io/img-to-tgs/)** · [Русский](#gif--видео--стикер-telegram)
+
+Static web page that converts GIF, MP4, WEBM into Telegram stickers. Everything runs in the browser, files never leave your device. The interface is in Russian and English.
 
 Two output modes:
 - **TGS** — animated (Lottie) sticker. Vector only, ≤ 64 KB, so frames are vectorized and look stylized.
